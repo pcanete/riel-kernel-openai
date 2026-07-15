@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Riel Instance",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kernel_version",
+    "mode",
+    "initialized_at",
+    "timezone"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "kernel_version": {
+      "type": "string"
+    },
+    "mode": {
+      "const": "instance"
+    },
+    "initialized_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timezone": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

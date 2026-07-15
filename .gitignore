@@ -1,0 +1,41 @@
+# Datos privados de la instancia
+org/
+engagements/
+bus/
+.riel/
+bandeja/
+
+# Agentes locales de cada organización
+.codex/agents/local-*.toml
+
+# Secretos y credenciales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Salidas locales
+build/
+dist/
+*.log
+*.tmp

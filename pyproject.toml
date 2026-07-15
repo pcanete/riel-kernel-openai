@@ -1,0 +1,10 @@
+[project]
+name = "riel-kernel"
+version = "2.0.0"
+description = "Kernel local de coordinación y gobernanza para Codex y ChatGPT"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [{name = "Patricio Cañete"}]
+
+[tool.ruff]
+line-length = 110

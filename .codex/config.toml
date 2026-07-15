@@ -1,0 +1,52 @@
+approval_policy = "on-request"
+default_permissions = "riel-workspace"
+project_doc_max_bytes = 65536
+project_doc_fallback_filenames = ["CHATGPT_PROJECT_INSTRUCTIONS.md"]
+
+[features]
+hooks = true
+
+[agents]
+max_threads = 4
+max_depth = 1
+interrupt_message = true
+
+[permissions.riel-workspace]
+description = "Escritura limitada a las capas privadas de Riel; kernel y secretos protegidos."
+extends = ":workspace"
+
+[permissions.riel-workspace.filesystem.":workspace_roots"]
+"AGENTS.md" = "read"
+"README.md" = "read"
+"LEEME.md" = "read"
+"CHANGELOG.md" = "read"
+"LICENSE" = "read"
+"NOTICE" = "read"
+"SECURITY.md" = "read"
+"CONTRIBUTING.md" = "read"
+"kernel/**" = "read"
+"templates/**" = "read"
+"scripts/**" = "read"
+"tests/**" = "read"
+"chatgpt/**" = "read"
+".github/**" = "read"
+".codex/config.toml" = "read"
+".codex/hooks.json" = "read"
+".codex/hooks/**" = "read"
+".codex/rules/**" = "read"
+".codex/agents/riel-*.toml" = "read"
+".agents/skills/**" = "read"
+"org/**" = "write"
+"engagements/**" = "write"
+"bus/**" = "write"
+".riel/**" = "write"
+".codex/agents/local-*.toml" = "write"
+".env" = "deny"
+".env.*" = "deny"
+"**/.env" = "deny"
+"**/.env.*" = "deny"
+"**/*credentials*" = "deny"
+"**/*secret*" = "deny"
+
+[permissions.riel-workspace.network]
+enabled = false

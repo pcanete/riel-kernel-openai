@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://riel.local/schemas/approval.schema.json",
+  "title": "Riel Approval",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "requested_by",
+    "action",
+    "tool_pattern",
+    "scope",
+    "risk",
+    "reversible",
+    "created_at",
+    "expires_at",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^apr-"
+    },
+    "requested_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approved_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "minLength": 3
+    },
+    "tool_pattern": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "reversible": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "approved",
+        "denied",
+        "expired",
+        "consumed"
+      ]
+    },
+    "consumed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "consumed_subject": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

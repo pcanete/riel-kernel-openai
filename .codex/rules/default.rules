@@ -1,0 +1,51 @@
+# Acciones destructivas: siempre prohibidas.
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Riel no destruye cambios locales. Usar una rama o restauración selectiva.",
+    match = ["git reset --hard", "git reset --hard HEAD~1"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "forbidden",
+    justification = "Riel no elimina archivos no versionados de forma masiva.",
+    match = ["git clean -fd", "git clean -xdf"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["--force", "--force-with-lease"]],
+    decision = "forbidden",
+    justification = "Los force-push están prohibidos. Crear una nueva rama o PR.",
+    match = ["git push --force", "git push --force-with-lease origin main"],
+)
+
+# Acciones externas: requieren prompt y además aprobación formal del hook.
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Publicar cambios es nivel 2 y requiere aprobación formal activa.",
+    match = ["git push", "git push origin feature"],
+    not_match = ["git status"],
+)
+
+prefix_rule(
+    pattern = ["gh", ["pr", "issue", "release", "repo"]],
+    decision = "prompt",
+    justification = "Las escrituras o publicaciones en GitHub requieren revisión humana.",
+    match = ["gh pr create", "gh issue create", "gh release create v2.0.0", "gh repo create demo"],
+)
+
+prefix_rule(
+    pattern = [["npm", "pnpm", "yarn"], "publish"],
+    decision = "prompt",
+    justification = "Publicar paquetes genera efectos externos y requiere aprobación nivel 2.",
+    match = ["npm publish", "pnpm publish", "yarn publish"],
+)
+
+prefix_rule(
+    pattern = [["vercel", "netlify"], ["deploy", "--prod"]],
+    decision = "prompt",
+    justification = "Los despliegues requieren aprobación nivel 2.",
+    match = ["vercel deploy", "vercel --prod", "netlify deploy"],
+)
