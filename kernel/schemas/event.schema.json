@@ -1,84 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://riel.local/schemas/event.schema.json",
-  "title": "Riel Event",
+  "$id": "https://github.com/pcanete/riel-kernel-openai/kernel/schemas/event.schema.json",
+  "title": "Riel shared event",
   "type": "object",
-  "required": [
-    "schema_version",
-    "id",
-    "type",
-    "status",
-    "sender",
-    "recipient",
-    "scope",
-    "created_at",
-    "payload"
-  ],
+  "additionalProperties": false,
+  "required": ["id", "type", "organization_ref", "actor_ref", "created_at", "summary", "record_ref"],
   "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "id": {
-      "type": "string",
-      "minLength": 3
-    },
-    "type": {
-      "enum": [
-        "context",
-        "task",
-        "decision",
-        "handoff",
-        "block",
-        "approval",
-        "close",
-        "audit"
-      ]
-    },
-    "status": {
-      "type": "string",
-      "minLength": 1
-    },
-    "sender": {
-      "type": "string",
-      "minLength": 1
-    },
-    "recipient": {
-      "type": "string",
-      "minLength": 1
-    },
-    "scope": {
-      "type": "string",
-      "minLength": 1
-    },
-    "created_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "payload": {
-      "type": "object"
-    },
-    "correlation_id": {
-      "type": "string"
-    },
-    "closes": {
-      "type": "string"
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "enum": ["task", "decision", "handoff", "blocker", "approval", "context"] },
+    "organization_ref": { "type": "string", "minLength": 1 },
+    "engagement_ref": { "type": ["string", "null"] },
+    "actor_ref": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "summary": { "type": "string", "minLength": 1 },
+    "record_ref": { "type": "string", "minLength": 1 },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "type": {
-            "const": "close"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "closes"
-        ]
-      }
-    }
-  ],
-  "additionalProperties": false
+  }
 }

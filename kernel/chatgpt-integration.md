@@ -1,16 +1,17 @@
 # Integración con ChatGPT
 
-ChatGPT Projects permite instrucciones específicas del proyecto y archivos de contexto. Riel usa esa capa como interfaz de conversación, análisis y coordinación.
+ChatGPT Projects puede ser interfaz de conversación, análisis y coordinación. No es por sí solo la fuente organizacional durable.
 
 ## División de responsabilidades
 
-- ChatGPT: conversación, síntesis, ideación, investigación y coordinación con conectores disponibles.
-- Codex: lectura/escritura del workspace, validación, ejecución, hooks, bus y fuente de verdad local.
+- **ChatGPT:** conversación, síntesis, ideación, investigación y conectores autorizados.
+- **Codex:** ejecución local separada del kernel, validación técnica y desarrollo de artefactos.
+- **Sistemas compartidos:** contexto, decisiones, estado, dueños, próximos pasos y referencias a entregables.
 
 ## Reglas
 
-- Las instrucciones del Project deben copiarse desde `CHATGPT_PROJECT_INSTRUCTIONS.md`.
-- Subir `chatgpt/RIEL_CHATGPT_CONTEXT.md` como base.
-- Adjuntar contexto privado solo cuando sea necesario y autorizado.
-- Después de trabajar en ChatGPT, devolver un handoff estructurado para que Codex actualice los archivos canónicos.
-- Una escritura mediante conector sigue siendo nivel 2 aunque se ejecute desde ChatGPT.
+- No subir al Project copias masivas de datos privados.
+- Recuperar sólo el contexto necesario mediante conectores o archivos autorizados.
+- Una escritura con conector sigue siendo nivel 2 cuando la política lo exige.
+- Después del trabajo, actualizar el registro compartido. Un handoff que sólo pide "actualizar archivos locales" es insuficiente.
+- Si no existe conector de escritura, devolver un handoff preciso y marcar `visibilidad pendiente` hasta que una persona lo registre.

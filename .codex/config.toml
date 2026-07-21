@@ -1,4 +1,5 @@
 approval_policy = "on-request"
+approvals_reviewer = "user"
 default_permissions = "riel-workspace"
 project_doc_max_bytes = 65536
 project_doc_fallback_filenames = ["CHATGPT_PROJECT_INSTRUCTIONS.md"]
@@ -15,7 +16,7 @@ max_depth = 1
 interrupt_message = true
 
 [permissions.riel-workspace]
-description = "Escritura limitada a las capas privadas de Riel; kernel y secretos protegidos."
+description = "Checkout del kernel en solo lectura; contexto y visibilidad viven en fuentes compartidas."
 extends = ":workspace"
 
 [permissions.riel-workspace.filesystem.":workspace_roots"]
@@ -39,11 +40,16 @@ extends = ":workspace"
 ".codex/rules/**" = "read"
 ".codex/agents/riel-*.toml" = "read"
 ".agents/skills/**" = "read"
-"org/**" = "write"
-"engagements/**" = "write"
-"bus/**" = "write"
-".riel/**" = "write"
-".codex/agents/local-*.toml" = "write"
+".riel-instance.json" = "read"
+"org/**" = "deny"
+"engagements/**" = "deny"
+"clients/**" = "deny"
+"projects/**" = "deny"
+"casos/**" = "deny"
+"bus/**" = "deny"
+"bandeja/**" = "deny"
+".riel/**" = "deny"
+".codex/agents/local-*.toml" = "deny"
 ".env" = "deny"
 ".env.*" = "deny"
 "**/.env" = "deny"

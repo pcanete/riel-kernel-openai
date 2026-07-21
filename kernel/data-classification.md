@@ -1,25 +1,22 @@
-# Clasificación de datos
+# Clasificación y ubicación de datos
 
-## PUBLIC
+## Regla principal
 
-Puede publicarse deliberadamente: documentación del kernel, ejemplos anonimizados y materiales aprobados.
+La clasificación define controles; la ubicación define además quién conserva visibilidad. Ningún dato organizacional durable se almacena dentro del checkout del kernel, cualquiera sea su clasificación.
 
-## INTERNAL
+## Clases
 
-Información operativa de la organización que no debe publicarse: procesos, notas, decisiones y contexto de equipo.
+- `PUBLIC`: material publicable, como el propio kernel.
+- `INTERNAL`: operación interna sin datos especialmente sensibles.
+- `CONFIDENTIAL`: clientes, estrategia, acuerdos, finanzas o información personal.
+- `RESTRICTED`: secretos, credenciales y datos regulados.
 
-## CONFIDENTIAL
+## Ubicación
 
-Información cuyo acceso debe limitarse: datos de clientes, contratos, métricas privadas, correos, credenciales parciales y estrategias no públicas.
+- Contexto, decisiones, tareas, perfiles, handoffs y estado: fuente compartida autorizada con permisos acordes a la clasificación.
+- Artefactos de ejecución: repositorio o directorio separado, con una referencia visible en la fuente compartida.
+- Credenciales: gestor de secretos o mecanismo nativo del proveedor; nunca archivos del kernel, logs ni registros compartidos en texto plano.
+- Estado técnico de Riel: directorio externo al checkout, sin contenido de negocio y con acceso mínimo.
+- Caché: temporal, reconstruible, con expiración y sin convertirse en fuente de verdad.
 
-## RESTRICTED
-
-Secretos, tokens, contraseñas, datos médicos, financieros identificables, documentos legales sensibles y cualquier dato cuya exposición produzca daño significativo.
-
-## Reglas
-
-- El kernel solo contiene PUBLIC.
-- `org/`, `engagements/` y `bus/` pueden contener INTERNAL o CONFIDENTIAL.
-- RESTRICTED no se almacena salvo necesidad explícita, autorización y protección adicional.
-- Logs guardan hashes y resúmenes mínimos; nunca secretos ni cuerpos completos.
-- Promover información a una capa superior requiere revisión humana y minimización.
+Si no existe un destino compartido adecuado para la clasificación, Riel no crea un sustituto local silencioso: informa el bloqueo.

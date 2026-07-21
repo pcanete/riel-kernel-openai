@@ -1,31 +1,28 @@
-# Contexto de la organización
+# Plantilla de registro compartido de organización
 
-Estado: parcial
+Esta estructura debe crearse en una fuente compartida autorizada. No se copia ni se completa dentro del checkout del kernel.
 
 ## Identidad
 
-- Nombre: {{ORG_NAME}}
-- Qué hace: pendiente de completar con 3–6 frases concretas.
-- Cómo genera valor/ingresos: pendiente.
+- Organización: {{ORG_NAME}}
+- Qué hace: {{ORG_DESCRIPTION}}
+- Responsable: {{OWNER_REF}}
+- Última revisión: {{LAST_REVIEWED_AT}}
 
 ## Gobierno
 
-- Responsable principal: {{OWNER}}
-- Autoridad y límites: pendiente.
+- Autoridades y límites: {{AUTHORITY_MODEL}}
+- Política de aprobaciones: {{APPROVAL_POLICY}}
+- Clasificación máxima autorizada: {{MAX_DATA_CLASSIFICATION}}
 
-## Herramientas autorizadas
+## Fuentes compartidas
 
-Ninguna asumida. Registrar herramienta, alcance, modo lectura/escritura y responsable.
+- Trabajo y seguimiento: {{WORK_SOURCE_REF}}
+- Conocimiento organizacional: {{KNOWLEDGE_SOURCE_REF}}
+- Artefactos: {{ARTIFACT_SOURCE_REF}}
 
-## Agentes locales
+## Operación
 
-Ninguno al inicio. Los agentes nacen del uso real.
-
-## Datos y seguridad
-
-- Clasificación máxima prevista: INTERNAL hasta revisión.
-- Restricciones específicas: pendiente.
-
-## Engagements
-
-Registrar únicamente referencias y estado; el detalle vive en `engagements/`.
+- Equipos y responsabilidades: {{TEAM_MODEL}}
+- Reglas específicas: {{ORG_RULES}}
+- Engagements activos: referencias compartidas, sin duplicar su detalle.

@@ -1,31 +1,48 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Riel Instance",
+  "$id": "https://github.com/pcanete/riel-kernel-openai/kernel/schemas/instance.schema.json",
+  "title": "Riel shared-first instance",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "schema_version",
     "kernel_version",
     "mode",
+    "instance_id",
+    "organization_ref",
+    "owner_ref",
     "initialized_at",
-    "timezone"
+    "timezone",
+    "python_executable",
+    "shared_sources"
   ],
   "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "kernel_version": {
-      "type": "string"
-    },
-    "mode": {
-      "const": "instance"
-    },
-    "initialized_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "timezone": {
-      "type": "string"
+    "schema_version": { "const": "2.0" },
+    "kernel_version": { "type": "string", "minLength": 1 },
+    "mode": { "const": "shared-first" },
+    "instance_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+    "organization_ref": { "type": "string", "minLength": 1 },
+    "owner_ref": { "type": "string", "minLength": 1 },
+    "initialized_at": { "type": "string", "format": "date-time" },
+    "timezone": { "type": "string", "minLength": 1 },
+    "python_executable": { "type": "string", "minLength": 1 },
+    "shared_sources": {
+      "type": "object",
+      "propertyNames": { "enum": ["organization", "work", "knowledge", "artifacts"] },
+      "additionalProperties": { "$ref": "#/$defs/source" }
     }
   },
-  "additionalProperties": false
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "locator", "mode", "configured_at"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "mode": { "enum": ["read", "read-write"] },
+        "configured_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
 }

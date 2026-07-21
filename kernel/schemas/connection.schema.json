@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pcanete/riel-kernel-openai/kernel/schemas/connection.schema.json",
+  "title": "Riel checkout connection",
+  "description": "Ignored technical pointer from a clean kernel checkout to state outside that checkout.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "instance_id", "state_dir"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "instance_id": { "type": "string", "minLength": 1 },
+    "state_dir": { "type": "string", "minLength": 1 }
+  }
+}
+

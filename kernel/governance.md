@@ -10,21 +10,20 @@
 
 ## Aprobación
 
-Una aprobación contiene:
+La aprobación tiene dos capas que no se sustituyen:
 
-- identificador;
-- solicitante y aprobador;
-- acción y alcance;
-- patrón técnico de herramienta/comando;
-- riesgo y reversibilidad;
-- creación, aprobación y vencimiento;
-- estado y consumo.
+- **Decisión de negocio:** queda en el sistema compartido con identificador, solicitante, autoridad, acción, alcance, riesgo, reversibilidad, vigencia y estado.
+- **Autorización técnica:** la conceden el sandbox, la política nativa de aprobación de Codex y los permisos del proveedor externo al momento de ejecutar.
 
-No es válida si falta alguno de los controles verificables, está vencida, fue consumida o la acción no coincide.
+Un registro compartido nunca se transforma en permiso técnico. Riel no genera tokens locales ni permite que un hook eleve permisos. La acción permanece pendiente si falta cualquiera de las capas aplicables o si el alcance no coincide exactamente.
 
 ## Decisiones
 
-Registrar decisiones que cambian dirección, alcance, permisos, arquitectura o una recomendación que el humano decide ignorar. No registrar cada preferencia menor.
+Registrar en el sistema compartido las decisiones que cambian dirección, alcance, permisos, arquitectura o una recomendación que el humano decide ignorar. No registrar cada preferencia menor ni usar un archivo local como única copia.
+
+## Visibilidad
+
+El cierre de trabajo requiere un registro compartido con resultado, estado, dueño y próxima acción. Si la sincronización no ocurre, el trabajo permanece `visibilidad pendiente` aunque el artefacto local esté terminado.
 
 ## Escalación
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import tempfile
 import unittest
@@ -18,51 +19,141 @@ SPEC.loader.exec_module(riel)
 class RielCliTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name) / "repo"
-        shutil.copytree(ROOT, self.root, ignore=shutil.ignore_patterns(".git", "__pycache__", "org", "engagements", "bus", ".riel"))
+        self.base = Path(self.tmp.name)
+        self.root = self.base / "kernel"
+        self.state_dir = self.base / "technical-state"
+        self.work_dir = self.base / "client-work"
+        self.work_dir.mkdir()
+        shutil.copytree(
+            ROOT,
+            self.root,
+            ignore=shutil.ignore_patterns(
+                ".git", "__pycache__", ".riel-instance.json", "org", "engagements",
+                "clients", "projects", "casos", "bus", "bandeja", ".riel"
+            ),
+        )
         self.old = Path.cwd()
-        import os
         os.chdir(self.root)
 
     def tearDown(self):
-        import os
         os.chdir(self.old)
         self.tmp.cleanup()
 
-    def test_init_and_engagement(self):
-        riel.command_init(Namespace(org_name="Acme", owner="Ana Pérez", timezone="America/Argentina/Cordoba", force=False))
-        self.assertTrue((self.root / ".riel" / "instance.json").exists())
-        self.assertTrue((self.root / "org" / "users" / "ana-perez.md").exists())
-        riel.command_new_engagement(Namespace(id="cliente-1", type="client", name="Cliente Uno", owner=None))
-        self.assertTrue((self.root / "engagements" / "cliente-1" / "AGENTS.md").exists())
+    def init_instance(self):
+        riel.command_init(
+            Namespace(
+                organization_ref="clickup://workspace/acme",
+                owner_ref="user://ana",
+                instance_id="acme",
+                state_dir=str(self.state_dir),
+                timezone="America/Argentina/Cordoba",
+                force=False,
+            )
+        )
 
-    def test_bus_append_and_close(self):
-        riel.command_init(Namespace(org_name="Acme", owner="Ana", timezone="local", force=False))
-        args = Namespace(recipient="riel", type="task", sender="riel", scope="workspace", payload='{"x":1}')
-        riel.command_bus_send(args)
-        path = self.root / "bus" / "queues" / "riel.ndjson"
-        event = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
-        self.assertEqual(event["type"], "task")
-        riel.command_bus_close(Namespace(event_id=event["id"], recipient="riel", sender="riel", scope="workspace", reason="done"))
-        lines = path.read_text(encoding="utf-8").splitlines()
-        self.assertEqual(len(lines), 2)
-        self.assertEqual(json.loads(lines[1])["closes"], event["id"])
+    def configure_required_sources(self):
+        for role, locator in (
+            ("organization", "wiki://acme"),
+            ("work", "clickup://space/acme"),
+        ):
+            riel.command_configure_source(
+                Namespace(role=role, provider="test", locator=locator, mode="read-write")
+            )
 
-    def test_approval_lifecycle(self):
-        riel.command_init(Namespace(org_name="Acme", owner="Ana", timezone="local", force=False))
-        args = Namespace(action="Publicar", tool_pattern="git push", scope="repo", risk="medium", reversible=True, reason="", requested_by="riel", expires_minutes=60)
-        riel.command_request_approval(args)
-        approval_file = next((self.root / "bus" / "approvals").glob("*.json"))
-        approval_id = approval_file.stem
-        riel.command_approve(Namespace(id=approval_id, by="ana"))
-        riel.command_activate_approval(Namespace(id=approval_id, subject="git push origin main"))
-        self.assertEqual((self.root / ".riel" / "active-approval").read_text().strip(), approval_id)
+    def test_init_keeps_business_context_outside_kernel(self):
+        self.init_instance()
+        link = json.loads((self.root / ".riel-instance.json").read_text(encoding="utf-8"))
+        self.assertTrue(Path(link["state_dir"]).samefile(self.state_dir))
+        self.assertTrue((self.state_dir / "instance.json").exists())
+        instance = json.loads((self.state_dir / "instance.json").read_text(encoding="utf-8"))
+        self.assertTrue(Path(instance["python_executable"]).is_file())
+        for forbidden in ("org", "engagements", "clients", "projects", "casos", "bus", "bandeja", ".riel"):
+            self.assertFalse((self.root / forbidden).exists())
 
-    def test_rejects_overbroad_approval(self):
-        riel.command_init(Namespace(org_name="Acme", owner="Ana", timezone="local", force=False))
-        args = Namespace(action="Todo", tool_pattern=".*", scope="repo", risk="high", reversible=False, reason="", requested_by="riel", expires_minutes=60)
+    def test_doctor_requires_and_validates_shared_sources(self):
+        self.init_instance()
+        errors, _ = riel.doctor(self.root)
+        self.assertIn("Falta fuente compartida obligatoria: organization", errors)
+        self.assertIn("Falta fuente compartida obligatoria: work", errors)
+        self.configure_required_sources()
+        errors, _ = riel.doctor(self.root)
+        self.assertEqual(errors, [])
+
+    def test_init_reconnects_existing_state_without_erasing_sources(self):
+        self.init_instance()
+        self.configure_required_sources()
+        (self.root / ".riel-instance.json").unlink()
+        self.init_instance()
+        instance = json.loads((self.state_dir / "instance.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(instance["shared_sources"]), {"organization", "work"})
+        self.assertTrue((self.root / ".riel-instance.json").exists())
+
+    def test_doctor_rejects_legacy_local_context(self):
+        self.init_instance()
+        self.configure_required_sources()
+        (self.root / "org").mkdir()
+        errors, _ = riel.doctor(self.root)
+        self.assertTrue(any("datos o agentes locales heredados" in item for item in errors))
+
+    def test_link_work_must_be_outside_kernel(self):
+        self.init_instance()
+        inside = self.root / "client-work"
+        inside.mkdir()
         with self.assertRaises(SystemExit):
-            riel.command_request_approval(args)
+            riel.command_link_work(
+                Namespace(
+                    engagement_ref="clickup://task/1",
+                    shared_record="clickup://task/1",
+                    work_dir=str(inside),
+                    artifact_ref=None,
+                )
+            )
+        riel.command_link_work(
+            Namespace(
+                engagement_ref="clickup://task/1",
+                shared_record="clickup://task/1",
+                work_dir=str(self.work_dir),
+                artifact_ref="git://client/repo",
+            )
+        )
+        state = json.loads((self.state_dir / "state.json").read_text(encoding="utf-8"))
+        self.assertTrue(Path(state["active_workdir"]).samefile(self.work_dir))
+
+    def test_session_close_requires_shared_record_and_writes_external_receipt(self):
+        self.init_instance()
+        with self.assertRaises(SystemExit):
+            riel.command_session_close(
+                Namespace(engagement_ref="work://1", shared_record="", confirmed_by="user://ana")
+            )
+        riel.command_session_close(
+            Namespace(
+                engagement_ref="work://1",
+                shared_record="clickup://task/1#comment-2",
+                confirmed_by="user://ana",
+            )
+        )
+        self.assertEqual(len(list((self.state_dir / "receipts").glob("*.json"))), 1)
+        self.assertFalse((self.root / "session-log.md").exists())
+
+    def test_cli_cannot_mint_or_activate_technical_approvals(self):
+        self.init_instance()
+        parser = riel.build_parser()
+        subcommands = next(
+            action.choices for action in parser._actions if getattr(action, "choices", None)
+        )
+        for forbidden in ("request-approval", "approve", "deny", "activate-approval"):
+            self.assertNotIn(forbidden, subcommands)
+        self.assertFalse((self.state_dir / "approvals").exists())
+        self.assertFalse((self.state_dir / "active-approval").exists())
+
+    def test_doctor_warns_that_legacy_approval_artifacts_are_inert(self):
+        self.init_instance()
+        self.configure_required_sources()
+        (self.state_dir / "approvals").mkdir()
+        (self.state_dir / "active-approval").write_text("apr-old\n", encoding="utf-8")
+        errors, warnings = riel.doctor(self.root)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("No conceden permisos" in warning for warning in warnings))
 
     def test_slug_preserves_spanish_names(self):
         self.assertEqual(riel.slug("Ana Pérez Núñez"), "ana-perez-nunez")

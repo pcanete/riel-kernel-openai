@@ -1,7 +1,9 @@
-# Instrucciones del engagement {{ENGAGEMENT_ID}}
+# Instrucción local de ejecución para un engagement
 
-Antes de trabajar, leer `shared/context.md`, `shared/open-loops.md` y `shared/decisions.md`.
+- Engagement compartido: {{ENGAGEMENT_REF}}
+- Fuente de trabajo: {{WORK_SOURCE_REF}}
+- Directorio local de artefactos: {{WORKDIR}}
 
-Escribir únicamente dentro de este engagement salvo actualización aprobada de `org/` o del bus mediante Riel. No leer otros engagements sin necesidad explícita y autorización.
+Antes de ejecutar, recuperar objetivo, decisiones, riesgos y bucles abiertos desde la fuente compartida. Al cerrar, publicar allí el estado verificable y las referencias a artefactos.
 
-Mantener entregables en `work/`. Registrar decisiones y loops; no usar la conversación como único lugar de continuidad.
+Este directorio local es un área de ejecución reemplazable. No es memoria organizacional ni fuente canónica.

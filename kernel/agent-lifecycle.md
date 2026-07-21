@@ -1,26 +1,20 @@
 # Ciclo de vida de agentes
 
-## Nacimiento
+El kernel publica solamente perfiles genéricos y portables. Los agentes específicos de una organización o cliente pertenecen al entorno privado de esa organización y nunca al checkout actualizable.
 
-Un agente local requiere necesidad repetida, frontera estable, entrada y salida claras, no duplicación, evaluación de riesgo y aprobación nivel 2.
+## Alta
 
-La implementación vive en `.codex/agents/local-<id>.toml` y se ignora en Git. El registro conceptual vive en `org/context.md`.
+Un agente nuevo requiere propósito concreto, propietario, autoridad, herramientas, clasificación máxima y criterio de retiro. Esa definición se registra en la fuente organizacional compartida; su archivo ejecutable se instala fuera del kernel.
 
-## Entrevista mínima
+## Operación
 
-Debe responder:
+- recuperar contexto por adapters y referencias, no por carpetas privadas del kernel;
+- limitar permisos y acceso a fuentes;
+- publicar resultados y handoffs donde el equipo pueda verlos;
+- no conservar memoria paralela local.
 
-- para qué existe;
-- cuándo debe invocarse;
-- qué no hará;
-- qué archivos puede leer o escribir;
-- cuándo escala;
-- cómo se mide su utilidad.
+## Revisión y retiro
 
-## Evaluación
+Revisar uso, valor, solapamiento, permisos e incidentes. Al retirar un agente, revocar credenciales, actualizar el registro compartido y conservar únicamente la evidencia exigida por la política organizacional.
 
-Revisar después de uso real: calidad, costo, tiempos, escalaciones, fronteras invadidas y trabajo duplicado.
-
-## Retiro
-
-Retirar cuando no se usa, duplica funciones, genera más coordinación que valor o su conocimiento debe convertirse en una skill. Requiere aprobación nivel 2 y registro de la decisión.
+No existe un comando del kernel que cree automáticamente agentes privados dentro de `.codex/agents/`.

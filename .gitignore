@@ -1,11 +1,18 @@
-# Datos privados de la instancia
+# Enlace técnico recreable hacia estado externo al checkout
+.riel-instance.json
+
+# Raíces heredadas: siguen ignoradas para no publicar datos durante una
+# migración, pero `riel doctor` las considera un error y exige retirarlas.
 org/
 engagements/
+clients/
+projects/
+casos/
 bus/
 .riel/
 bandeja/
 
-# Agentes locales de cada organización
+# Agentes locales heredados: no pertenecen al checkout distribuible
 .codex/agents/local-*.toml
 
 # Secretos y credenciales

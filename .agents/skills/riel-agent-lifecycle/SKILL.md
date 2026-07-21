@@ -1,15 +1,11 @@
 ---
 name: riel-agent-lifecycle
-description: Proponer, crear, evaluar o retirar agentes locales cuando una función repetitiva tiene frontera estable; no usar por entusiasmo o para una tarea única.
+description: Gobernar agentes específicos de una organización sin incorporarlos al kernel público ni convertir el checkout en memoria privada.
 ---
 
-Criterios de nacimiento:
-- la función apareció al menos tres veces o existe evidencia equivalente;
-- tiene entrada, salida y frontera claras;
-- no duplica un agente o skill existente;
-- el beneficio supera costo, contexto y riesgo;
-- existe aprobación nivel 2 con patrón `agent:create`.
-
-Crear con `python scripts/riel.py new-agent ... --approval <id>`. El archivo será `.codex/agents/local-<id>.toml` y quedará fuera de Git.
-
-Evaluar después de uso real: precisión, costo, escalaciones, solapamiento y trazabilidad. Retirar con aprobación `agent:retire`. Registrar el agente y su estado en `org/context.md`.
+1. Justificá el agente por recurrencia, especialización, riesgo o necesidad de handoff; no por organigrama.
+2. Registrá propósito, autoridad, herramientas, propietario y criterios de retiro en la fuente organizacional compartida.
+3. Instalá su definición en el entorno privado autorizado por la organización, fuera del checkout de Riel.
+4. Usá únicamente referencias técnicas para vincularlo con la instancia. Nunca agregues agentes de clientes u organizaciones bajo `.codex/agents/` del kernel.
+5. Revisá periódicamente uso real, permisos y solapamiento. Retirá o consolidá el agente si ya no justifica su costo.
+6. Publicá los cambios de ciclo de vida en la fuente compartida para que el resto de la organización conserve visibilidad.

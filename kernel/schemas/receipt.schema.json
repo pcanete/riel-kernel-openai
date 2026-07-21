@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pcanete/riel-kernel-openai/kernel/schemas/receipt.schema.json",
+  "title": "Riel shared-visibility receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "engagement_ref", "shared_record_ref", "confirmed_by", "recorded_at"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "engagement_ref": { "type": "string", "minLength": 1 },
+    "shared_record_ref": { "type": "string", "minLength": 1 },
+    "confirmed_by": { "type": "string", "minLength": 1 },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  }
+}
+

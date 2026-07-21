@@ -1,11 +1,7 @@
-# Decisiones
+# Registro compartido de decisiones
 
-## Formato
+Esta estructura vive en la fuente compartida correspondiente.
 
-### YYYY-MM-DD — Título
-
-- Decisión:
-- Evidencia:
-- Alternativas:
-- Riesgos:
-- Responsable:
+| Fecha | Decisión | Autoridad | Alcance | Evidencia | Revisión |
+| --- | --- | --- | --- | --- | --- |
+| {{DATE}} | {{DECISION}} | {{AUTHORITY_REF}} | {{SCOPE}} | {{EVIDENCE_REF}} | {{REVIEW_DATE}} |
