@@ -1,70 +1,42 @@
-# Instalación y uso
+# Instalación shared-first
 
-## Opción recomendada: workspace nuevo
+## Antes de empezar
 
-1. Crear una carpeta mediante Git:
+Riel no guardará la organización dentro de esta carpeta. Prepará dos destinos compartidos:
 
-   ```bash
-   git clone https://github.com/pcanete/riel-kernel-openai riel
-   cd riel
-   ```
+1. `organization`: Wiki o registro de identidad, gobierno, usuarios y herramientas.
+2. `work`: sistema de clientes, proyectos, decisiones, estado y próximas acciones.
 
-2. Inicializar la capa privada:
+Pueden ser dos áreas de ClickUp, una Wiki y un gestor de proyectos, u otras herramientas accesibles para la organización.
 
-   ```bash
-   python scripts/riel.py init --org-name "Nombre de la organización" --owner "Nombre del responsable"
-   ```
+## Instalar
 
-3. Validar:
+1. Clonar el kernel en una carpeta propia y vacía.
+2. Desde una terminal humana, ejecutar `riel.py init` con referencias técnicas, no con dossiers ni contexto.
+3. Configurar las fuentes `organization` y `work`.
+4. Ejecutar `riel.py doctor`.
+5. Abrir Codex, revisar `/hooks` y pedir una primera tarea pequeña.
 
-   ```bash
-   python scripts/riel.py doctor
-   ```
+## Regla para el usuario
 
-4. Abrir Codex en la raíz. En el primer inicio, usar `/hooks` para revisar y confiar los hooks del repositorio.
+> Riel es infraestructura actualizable. El conocimiento de tu organización pertenece a sistemas compartidos. El trabajo local es ejecución, no memoria institucional.
 
-5. Pedirle a Riel una primera tarea real y pequeña. El onboarding es progresivo; no se completa un formulario gigante.
+## Qué nunca se crea aquí
 
-## Instalar en una carpeta que ya tiene archivos
+- carpetas de clientes o proyectos;
+- contexto de organización o perfiles de usuarios;
+- decisiones, open loops o session logs;
+- agentes propios de una organización;
+- secretos o credenciales.
 
-No usar `git init + checkout` sobre trabajo existente. Clonar este repositorio en una carpeta temporal y ejecutar:
+## Qué puede existir localmente
 
-```bash
-python scripts/installer.py --target /ruta/de/la/carpeta-existente
-```
+- `.riel-instance.json`, enlace técnico recreable e ignorado por Git;
+- un proyecto de software o contenidos en otra carpeta;
+- cachés y borradores descartables sin valor canónico.
 
-El instalador compara archivos y se detiene ante colisiones. No reemplaza nada silenciosamente.
+## Actualizar
 
-## Comandos principales
+Ejecutar `doctor`, comprobar un `git status` limpio, hacer `git pull --ff-only` y volver a ejecutar `doctor`.
 
-```bash
-python scripts/riel.py init
-python scripts/riel.py doctor
-python scripts/riel.py new-engagement --id ejemplo --type client --name "Cliente Ejemplo"
-python scripts/riel.py set-context --user nombre --engagement ejemplo
-python scripts/riel.py request-approval --action "Publicar sitio" --tool-pattern "git push|deploy" --scope ejemplo --risk medium --reversible
-python scripts/riel.py approve <id> --by nombre
-python scripts/riel.py activate-approval <id>
-python scripts/riel.py session-close --summary "..." --next-action "..." --owner nombre
-```
-
-## Actualizaciones
-
-Las capas privadas están ignoradas por Git. Antes de actualizar:
-
-```bash
-python scripts/riel.py doctor
-git pull --ff-only
-python scripts/riel.py doctor
-```
-
-Leer `CHANGELOG.md`. Nunca resolver conflictos copiando datos privados dentro del kernel.
-
-## ChatGPT
-
-1. Crear un Project.
-2. Copiar `CHATGPT_PROJECT_INSTRUCTIONS.md` en Project settings.
-3. Subir `chatgpt/RIEL_CHATGPT_CONTEXT.md`.
-4. Para trabajo con un engagement, adjuntar únicamente los archivos privados necesarios y autorizados.
-
-Las instrucciones del Project no reemplazan los hooks ni permisos locales. Las acciones persistentes deben ejecutarse desde Codex o conectores con aprobación explícita.
+Si una versión anterior dejó `org/`, `engagements/`, `bus/`, `.riel/` o agentes `local-*`, `doctor` se detendrá. Primero hay que llevar el contexto y la visibilidad a fuentes compartidas; no borrarlos por reflejo.

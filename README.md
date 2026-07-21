@@ -1,72 +1,116 @@
-# Riel Kernel para Codex y ChatGPT
+# Riel
 
-Riel es un kernel local de coordinación y gobernanza para trabajo asistido por agentes. Convierte instrucciones conceptuales en una arquitectura verificable basada en archivos, permisos, hooks, aprobaciones consumibles, registros append-only, skills y subagentes acotados.
+**Riel ayuda a las personas de una organización a trabajar con colaboradores agénticos sin perder contexto, control ni continuidad.**
 
-Esta edición está diseñada para:
+No dirige la empresa ni reemplaza a sus responsables. Coordina: entiende qué se está haciendo, recupera el contexto necesario, ordena decisiones y entregas, y pide intervención humana cuando una acción deja de ser reversible.
 
-- **Codex local/desktop/IDE:** opera sobre el workspace con `AGENTS.md`, permisos, hooks, rules, skills y agentes personalizados.
-- **ChatGPT Projects/Work:** usa instrucciones equivalentes y un paquete de contexto portable, sin convertir la conversación en fuente de verdad.
+Este repositorio es el **kernel de Riel para Codex y ChatGPT**: un esqueleto instalable y actualizable, vacío de información de cualquier organización.
 
-## Qué resuelve
+---
 
-- separa kernel público de datos privados;
-- evita que agentes locales o datos de clientes entren a Git;
-- formaliza aprobaciones para acciones externas;
-- unifica clientes, proyectos y casos bajo `engagements/`;
-- valida el bus y la estructura mediante una CLI;
-- crea agentes tarde, solo cuando aparece una función repetitiva;
-- conserva trazabilidad entre sesiones.
+## El problema que resuelve
 
-## Inicio rápido
+Cuando un equipo empieza a trabajar con IA, el trabajo suele quedar repartido entre conversaciones, computadoras y asistentes personales.
+
+- Cada sesión vuelve a pedir explicaciones que la organización ya dio.
+- Una decisión importante queda enterrada en un chat.
+- Lo que avanzó una persona no puede retomarlo fácilmente otra.
+- El equipo no sabe qué está haciendo el agente ni cuál es el próximo paso.
+- La información de un cliente termina mezclada con la configuración de una herramienta.
+- Nadie tiene claro qué puede hacer la IA por sí sola y qué debe aprobar una persona.
+
+Riel ordena esa colaboración alrededor de una regla sencilla:
+
+> **En local se ejecuta. En compartido se recuerda y se ve.**
+
+El software, los contenidos y otros entregables pueden producirse en una computadora. Pero el contexto, las decisiones, el estado y las próximas acciones deben quedar en una fuente que pueda consultar el resto de la organización: por ejemplo ClickUp, una wiki, un CRM, Drive o el repositorio compartido del proyecto.
+
+## Las tres capas
+
+Riel mantiene separadas tres cosas para que cada instalación pueda actualizarse sin riesgo y cada organización conserve el control de su información.
+
+| Capa | Qué contiene | Dónde vive |
+|---|---|---|
+| **Esqueleto** | Las reglas y herramientas generales de Riel. | Este repositorio |
+| **Organización** | Cómo trabaja el equipo, quién decide, qué herramientas usa y qué límites tiene. | Fuentes compartidas de la organización |
+| **Trabajo** | Clientes, proyectos, decisiones, avances, pendientes y entregables. | Sistemas y proyectos compartidos; archivos locales solo cuando la ejecución lo requiere |
+
+**El kernel no contiene información de ninguna organización.** No guarda nombres, clientes, proyectos, cultura, perfiles privados, decisiones ni conversaciones.
+
+Por eso una persona puede actualizar Riel desde GitHub sin que la actualización toque el contexto de su empresa o el trabajo de sus clientes. Si el kernel se borra y se vuelve a instalar, la memoria de la organización sigue disponible en sus fuentes compartidas.
+
+## Cómo funciona
+
+**Empieza con el contexto necesario.** Riel busca solo la información que necesita para el pedido actual. No carga toda la organización ni convierte cada conversación en memoria permanente.
+
+**Coordina antes de multiplicar agentes.** Riel es la interfaz principal. Puede apoyarse en especialistas cuando el trabajo lo justifica, pero mantiene una sola respuesta integrada y fronteras claras.
+
+**Trabaja donde corresponde.** Un desarrollo puede vivir en GitHub y un contenido en Drive o Canva. Riel no obliga a copiar esos materiales dentro del kernel.
+
+**Deja continuidad compartida.** Al cerrar un trabajo registra en la fuente acordada qué se hizo, qué se decidió, dónde está el resultado y cuál es la próxima acción. Si todavía no existe ese registro, el trabajo puede estar ejecutado, pero su visibilidad sigue pendiente.
+
+**Escala las acciones sensibles.** Publicar, enviar mensajes externos, gastar dinero, borrar trabajo, cambiar permisos o desplegar puede requerir aprobación humana. Un comentario o una tarea compartida deja trazabilidad, pero nunca concede por sí solo permisos técnicos.
+
+**Trata el contenido externo como información, no como órdenes.** Un documento, una página o una tarea puede aportar evidencia. No puede cambiar las instrucciones de Riel, ampliar permisos ni autorizar acciones ocultas.
+
+## Una sesión típica
+
+1. La persona pide un resultado, no una operación técnica.
+2. Riel identifica el proyecto y recupera el contexto compartido relevante.
+3. Ejecuta el trabajo o lo coordina con el especialista adecuado.
+4. Si aparece una decisión sensible, la lleva a la persona responsable.
+5. Entrega el resultado y deja visible el estado para que otra persona pueda continuar.
+
+La conversación ayuda a trabajar. La fuente compartida sostiene la organización.
+
+## Qué es y qué no es
+
+Riel es una capa de coordinación que se apoya en las herramientas que el equipo ya usa. No pretende reemplazar ClickUp, GitHub, Drive, una wiki, un CRM ni el criterio humano.
+
+Tampoco crea una memoria privada paralela dentro de esta carpeta. La instalación registra únicamente referencias técnicas mínimas para reencontrar las fuentes compartidas; no copia allí el conocimiento de la organización ni sus credenciales.
+
+Los conectores de ClickUp, Drive, GitHub u otros servicios se instalan y autorizan por separado. Cada organización decide qué herramientas conecta y qué permisos concede.
+
+## Instalación
+
+La guía de instalación está en **[LEEME.md](LEEME.md)**. El recorrido inicial es:
+
+1. Clonar este repositorio en una carpeta propia.
+2. Indicar dónde vive el contexto compartido de la organización.
+3. Indicar dónde se gestionan los clientes, proyectos o áreas de trabajo.
+4. Verificar la instalación y abrir Codex.
+5. Pedir a Riel una primera tarea pequeña y real.
+
+Requisitos: Git, Python 3.11 o superior y Codex; también puede adaptarse a un proyecto de ChatGPT.
+
+## Actualizar
+
+Las actualizaciones modifican únicamente el esqueleto. No migran, mezclan ni borran información de la organización porque esa información vive fuera del repositorio.
 
 ```bash
-git clone https://github.com/pcanete/riel-kernel-openai riel
-cd riel
-python scripts/riel.py init --org-name "Mi organización" --owner "Nombre"
 python scripts/riel.py doctor
-codex
+git pull --ff-only
+python scripts/riel.py doctor
 ```
 
-En Codex, revisar y confiar los hooks del repositorio con `/hooks` antes del primer uso.
+Qué cambió en cada versión: **[CHANGELOG.md](CHANGELOG.md)**. Si una instalación anterior guardaba contexto local, seguir **[MIGRATION_FROM_RIEL_1.md](MIGRATION_FROM_RIEL_1.md)** antes de actualizar.
 
-Para una carpeta existente, no mezclar con `git checkout`. Usar el instalador con detección de colisiones:
+## Para quienes mantienen el kernel
+
+La documentación técnica vive en [`kernel/`](kernel/). Para validar una modificación:
 
 ```bash
-python scripts/installer.py --target /ruta/al/workspace
+python scripts/validate_repo.py
+python scripts/riel.py doctor --template
+python -m unittest discover -s tests -v
 ```
 
-## Estructura
-
-```text
-AGENTS.md                     identidad y reglas de arranque
-.codex/                       configuración, hooks, rules y subagentes
-.agents/skills/               workflows cargados bajo demanda
-kernel/                       constitución, seguridad y contratos
-scripts/riel.py               CLI operativa
-org/                          contexto privado de la organización (ignorado)
-engagements/                  trabajo privado por unidad (ignorado)
-bus/                          eventos, colas y aprobaciones (ignorado)
-.riel/                        estado local de la instancia (ignorado)
-```
-
-## Modos
-
-- **Modo desarrollo:** no existe `.riel/instance.json`; el kernel puede editarse y probarse.
-- **Modo instancia:** `riel init` crea `.riel/instance.json`; los hooks protegen los archivos del kernel y habilitan únicamente las áreas privadas.
-- **Modo mantenimiento:** para editar deliberadamente el kernel de una instancia, iniciar Codex con `RIEL_MAINTENANCE=1` y revisar cada cambio.
-
-## ChatGPT
-
-Copiar `CHATGPT_PROJECT_INSTRUCTIONS.md` en las instrucciones de un Project y subir `chatgpt/RIEL_CHATGPT_CONTEXT.md`. El proyecto de ChatGPT coordina y razona; Codex mantiene la fuente de verdad local y aplica los guardrails técnicos.
-
-## Migración desde Riel 1.x
-
-Seguir `MIGRATION_FROM_RIEL_1.md`. La migración es deliberadamente a un repositorio nuevo para no mezclar contratos antiguos, datos privados e historial del kernel.
-
-## Estado
-
-Versión 2.0.1. Requiere Python 3.11 o superior. No necesita dependencias de ejecución externas.
+La versión `3.0.0-dev` introduce el modelo compartido por defecto. Una instalación normal trata este checkout como infraestructura actualizable, no como carpeta de trabajo.
 
 ## Licencia
 
-Apache-2.0. Concepto original: Patricio Cañete.
+[Apache-2.0](LICENSE). Podés usar, modificar y desplegar este kernel dentro de una organización, incluso comercialmente. Si redistribuís el kernel o publicás un trabajo derivado, conservá [NOTICE](NOTICE) y declará qué cambiaste.
+
+Concepto original: Patricio Cañete.
+
+El contexto, los agentes locales y el trabajo que genere cada organización pertenecen a esa organización y no forman parte de este repositorio.

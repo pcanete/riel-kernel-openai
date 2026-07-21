@@ -12,6 +12,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     errors: list[str] = []
+    for name in ("org", "engagements", "clients", "projects", "casos", "bus", "bandeja", ".riel"):
+        if (ROOT / name).exists():
+            errors.append(f"El kernel contiene la raíz privada prohibida: {name}/")
+    for path in (ROOT / ".codex" / "agents").glob("local-*.toml"):
+        errors.append(f"El kernel contiene un agente específico de organización: {path.relative_to(ROOT)}")
     agents = ROOT / "AGENTS.md"
     if agents.stat().st_size > 65536:
         errors.append("AGENTS.md supera 65536 bytes")

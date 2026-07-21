@@ -1,35 +1,27 @@
-# Migración desde Riel Kernel 1.x
+# Migración a Riel shared-first
 
-Esta edición es una reconstrucción, no un reemplazo in-place. Migrá primero a una carpeta o repositorio nuevo y conservá el repositorio anterior como respaldo de solo lectura.
+Esta migración aplica a instalaciones 1.x y 2.x que guardaban contexto durable bajo `org/`, `engagements/`, `bus/`, `.riel/` o agentes locales dentro del checkout.
 
-## Correspondencias
+## Principio
 
-| Riel 1.x | Riel 2.x |
-|---|---|
-| `CLAUDE.md` | `AGENTS.md` + `kernel/` + skills |
-| `.claude/agents/riel.md` | identidad principal en `AGENTS.md` |
-| `.claude/agents/<especialista>.md` | revisar y recrear como `.codex/agents/local-*.toml` |
-| `clients/`, `projects/`, `casos/` | `engagements/<id>/` con tipo en contexto |
-| documentación privada en `docs/` | `org/` o `engagements/<id>/shared/` |
-| bus NDJSON anterior | archivar; importar solo eventos validados |
+Primero se publica y verifica el conocimiento en fuentes compartidas; recién después se retira la copia local. La migración nunca borra datos automáticamente.
 
-## Procedimiento seguro
+## Procedimiento
 
-1. Crear el repositorio nuevo y ejecutar `python scripts/riel.py init`.
-2. Completar y revisar `org/context.md` y el perfil del responsable.
-3. Crear cada unidad con `new-engagement`; no copiar raíces antiguas directamente.
-4. Pasar contexto vigente a `shared/context.md`; dejar material histórico en `work/legacy/`.
-5. Convertir decisiones abiertas y pendientes, no todo el historial conversacional.
-6. Auditar cada agente anterior. Recrearlo únicamente si cumple el criterio de repetición, frontera estable y aprobación formal.
-7. No importar secretos, `.env`, credenciales, logs completos ni archivos ignorados sin clasificación.
-8. Ejecutar `python scripts/riel.py doctor` antes del primer uso.
+1. Congelá cambios en la instalación anterior y hacé un inventario de organizaciones, usuarios, engagements, decisiones, pendientes, aprobaciones, agentes y artefactos.
+2. Elegí las fuentes autorizadas para `organization`, `work`, `knowledge` y `artifacts`, con responsables y permisos claros.
+3. Transferí cada dato durable a su registro compartido. Conservá fecha, autoridad, procedencia y referencias a evidencia.
+4. Verificá con los usuarios responsables que el contenido sea completo, accesible y utilizable por el resto de la organización.
+5. Instalá el kernel nuevo en un checkout limpio y ejecutá `init` con estado técnico fuera de ese checkout.
+6. Configurá las fuentes mediante `configure-source` y ejecutá `doctor`.
+7. Mové los artefactos locales necesarios a repositorios o directorios de ejecución separados y enlazalos con `link-work`.
+8. Tratá cualquier `approvals/` o `active-approval` heredado como inválido: no concede permisos en esta versión. Conservá la decisión de negocio en la fuente compartida y usá la aprobación nativa de Codex para la frontera técnica.
+9. Archivá la instalación anterior fuera del checkout actual según la política de retención. No la elimines hasta que un responsable lo apruebe.
 
-## Qué no migrar automáticamente
+## Criterios de salida
 
-- aprobaciones antiguas;
-- permisos implícitos;
-- agentes no evaluados;
-- datos duplicados o sin dueño;
-- documentación específica de una organización dentro del kernel público.
-
-La migración termina cuando cada engagement tiene contexto, decisiones, open loops, dueño y próxima acción verificables.
+- No existen `org/`, `engagements/`, `bus/`, `.riel/` ni agentes específicos de una organización dentro del kernel.
+- Las fuentes `organization` y `work` están configuradas y accesibles.
+- Cada engagement activo tiene responsable, estado, decisiones, pendientes y próxima acción visibles.
+- Los artefactos tienen referencias compartidas y no dependen del checkout para ser encontrados.
+- `python scripts/riel.py doctor` termina sin errores.

@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/session_start.py\"",
-            "commandWindows": "powershell -NoProfile -Command \"$r=(git rev-parse --show-toplevel); py -3 `\"$r\\.codex\\hooks\\session_start.py`\"\"",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$r=(git rev-parse --show-toplevel); & `\"$r\\.codex\\hooks\\run_hook.ps1`\" -Hook session_start.py\"",
             "timeout": 15,
             "statusMessage": "Cargando estado de Riel"
           }
@@ -21,7 +21,7 @@
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/guard.py\"",
-            "commandWindows": "powershell -NoProfile -Command \"$r=(git rev-parse --show-toplevel); py -3 `\"$r\\.codex\\hooks\\guard.py`\"\"",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$r=(git rev-parse --show-toplevel); & `\"$r\\.codex\\hooks\\run_hook.ps1`\" -Hook guard.py\"",
             "timeout": 20,
             "statusMessage": "Verificando permisos y aprobación"
           }
@@ -35,7 +35,7 @@
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/audit.py\"",
-            "commandWindows": "powershell -NoProfile -Command \"$r=(git rev-parse --show-toplevel); py -3 `\"$r\\.codex\\hooks\\audit.py`\"\"",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$r=(git rev-parse --show-toplevel); & `\"$r\\.codex\\hooks\\run_hook.ps1`\" -Hook audit.py\"",
             "timeout": 15,
             "statusMessage": "Registrando trazabilidad mínima"
           }

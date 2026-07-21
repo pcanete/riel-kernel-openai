@@ -20,11 +20,11 @@ prefix_rule(
     match = ["git push --force", "git push --force-with-lease origin main"],
 )
 
-# Acciones externas: requieren prompt y además aprobación formal del hook.
+# Acciones externas: el runtime nativo debe solicitar aprobación al usuario.
 prefix_rule(
     pattern = ["git", "push"],
     decision = "prompt",
-    justification = "Publicar cambios es nivel 2 y requiere aprobación formal activa.",
+    justification = "Publicar cambios es nivel 2 y requiere aprobación nativa del usuario.",
     match = ["git push", "git push origin feature"],
     not_match = ["git status"],
 )

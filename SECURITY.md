@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Riel reduce riesgos operativos mediante permisos, hooks, rules, separación de datos y aprobaciones. No constituye una frontera de seguridad absoluta: los hooks no interceptan todas las rutas posibles y deben combinarse con sandbox, permisos del sistema operativo y controles de los conectores.
+Riel reduce riesgos operativos mediante sandbox, aprobación nativa, hooks defensivos, separación de datos y permisos de conectores. No constituye una frontera de seguridad absoluta: los hooks no interceptan todas las rutas posibles y nunca conceden permisos; sólo complementan los controles nativos del runtime y del sistema operativo.
 
 ## Reportes
 

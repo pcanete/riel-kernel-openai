@@ -1,99 +1,34 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://riel.local/schemas/approval.schema.json",
-  "title": "Riel Approval",
+  "$id": "https://github.com/pcanete/riel-kernel-openai/kernel/schemas/approval.schema.json",
+  "title": "Riel shared business decision",
+  "description": "Logical shape for a decision stored by a shared-system adapter. It is not a technical permission token.",
   "type": "object",
+  "additionalProperties": false,
   "required": [
-    "schema_version",
-    "id",
-    "requested_by",
-    "action",
-    "tool_pattern",
-    "scope",
-    "risk",
-    "reversible",
-    "created_at",
-    "expires_at",
-    "status"
+    "id", "organization_ref", "engagement_ref", "requested_by_ref",
+    "action", "scope", "risk", "reversible", "decision",
+    "requested_at", "record_ref"
   ],
   "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "id": {
-      "type": "string",
-      "pattern": "^apr-"
-    },
-    "requested_by": {
-      "type": "string",
-      "minLength": 1
-    },
-    "approved_by": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "action": {
-      "type": "string",
-      "minLength": 3
-    },
-    "tool_pattern": {
-      "type": "string",
-      "minLength": 1
-    },
-    "scope": {
-      "type": "string",
-      "minLength": 1
-    },
-    "risk": {
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ]
-    },
-    "reversible": {
-      "type": "boolean"
-    },
-    "reason": {
-      "type": "string"
-    },
-    "created_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "approved_at": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "format": "date-time"
-    },
-    "expires_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "status": {
-      "enum": [
-        "pending",
-        "approved",
-        "denied",
-        "expired",
-        "consumed"
-      ]
-    },
-    "consumed_at": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "format": "date-time"
-    },
-    "consumed_subject": {
-      "type": "string"
+    "id": { "type": "string", "minLength": 1 },
+    "organization_ref": { "type": "string", "minLength": 1 },
+    "engagement_ref": { "type": ["string", "null"] },
+    "requested_by_ref": { "type": "string", "minLength": 1 },
+    "decided_by_ref": { "type": ["string", "null"] },
+    "action": { "type": "string", "minLength": 1 },
+    "scope": { "type": "string", "minLength": 1 },
+    "risk": { "enum": ["low", "medium", "high", "critical"] },
+    "reversible": { "type": "boolean" },
+    "decision": { "enum": ["pending", "approved", "denied", "expired"] },
+    "requested_at": { "type": "string", "format": "date-time" },
+    "decided_at": { "type": ["string", "null"], "format": "date-time" },
+    "expires_at": { "type": ["string", "null"], "format": "date-time" },
+    "record_ref": { "type": "string", "minLength": 1 },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
     }
-  },
-  "additionalProperties": false
+  }
 }

@@ -1,9 +1,13 @@
-# Usuario: {{USER_NAME}}
+# Plantilla de usuario compartido
 
-- Identificador: {{USER_ID}}
-- Rol: responsable inicial
-- Puede aprobar nivel 2: sí, hasta revisar el gobierno de la organización
-- Nivel de uso de IA: conversacional
-- Preferencias de trabajo: pendiente
-- Conceptos que requieren traducción: pendiente
-- Restricciones: pendiente
+Este registro vive en la fuente organizacional compartida.
+
+- Identificador: {{USER_REF}}
+- Nombre: {{DISPLAY_NAME}}
+- Rol: {{ROLE}}
+- Autoridad confirmada: {{AUTHORITY_SCOPE}}
+- Preferencias de interacción: {{INTERACTION_PREFERENCES}}
+- Restricciones: {{RESTRICTIONS}}
+- Última confirmación: {{LAST_CONFIRMED_AT}}
+
+La autoridad nunca se infiere por el nombre, una conversación previa ni un archivo local.

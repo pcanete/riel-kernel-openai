@@ -1,29 +1,24 @@
-# Bus append-only
+# Contrato de eventos compartidos
 
-## Principio
+Riel conserva el concepto lógico de evento para trazabilidad, pero no mantiene un bus de negocio dentro del checkout.
 
-Cada cola es NDJSON: una línea JSON por evento. Las líneas existentes nunca se editan ni eliminan. El cierre se expresa con un nuevo evento `type: close` y el campo `closes`.
+## Persistencia
 
-## Evento mínimo
+- Los eventos durables viven en la fuente compartida de trabajo o conocimiento.
+- El adaptador traduce la estructura del proveedor a los campos mínimos de Riel.
+- El log técnico externo de hooks sirve para diagnóstico; no sustituye el historial visible de la organización.
+- No se crean `bus/inbox`, `bus/outbox` ni archivos NDJSON locales con contexto organizacional.
 
-```json
-{
-  "schema_version": "1.0",
-  "id": "evt-...",
-  "type": "task",
-  "status": "open",
-  "sender": "riel",
-  "recipient": "riel",
-  "scope": "engagement:ejemplo",
-  "created_at": "2026-07-15T10:00:00-03:00",
-  "payload": {}
-}
-```
+## Campos mínimos
 
-## Tipos
+- `id`: identificador estable.
+- `type`: tarea, decisión, handoff, bloqueo, aprobación o contexto.
+- `organization_ref`: referencia a la organización.
+- `engagement_ref`: referencia opcional al engagement.
+- `actor_ref`: responsable o emisor verificable.
+- `created_at`: fecha y zona horaria.
+- `summary`: descripción breve.
+- `record_ref`: URL o identificador del registro compartido.
+- `evidence_refs`: referencias a artefactos o evidencia.
 
-`context`, `task`, `decision`, `handoff`, `block`, `approval`, `close`, `audit`.
-
-## Concurrencia
-
-La CLI usa bloqueo de archivo según plataforma. Los subagentes no escriben directamente: devuelven el resultado al coordinador.
+`kernel/schemas/event.schema.json` documenta la forma interoperable. No prescribe una base local.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.0-dev — 2026-07-21
+
+Cambio arquitectónico shared-first en desarrollo.
+
+- El checkout queda reservado al kernel público y actualizable.
+- Contexto, usuarios, engagements, decisiones y visibilidad pasan a fuentes compartidas mediante adapters.
+- El estado técnico se mueve fuera del checkout y se enlaza con `.riel-instance.json`.
+- Se eliminan del flujo normal `org/`, `engagements/`, `bus/`, `.riel/` y agentes locales dentro del repositorio.
+- La ejecución local se enlaza desde un workdir externo.
+- Una sesión no cierra sin referencia al registro compartido actualizado.
+- `doctor` bloquea raíces locales heredadas y exige fuentes `organization` y `work`.
+- Las decisiones de negocio se registran en fuentes compartidas; el sandbox y la aprobación nativa de Codex conservan la autoridad técnica.
+- Todo contenido externo o compartido se trata como dato no confiable, nunca como instrucción o permiso.
+
 ## 2.0.1 — 2026-07-15
 
 Correcciones de compatibilidad verificadas en Windows y Codex CLI.

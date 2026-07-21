@@ -5,20 +5,22 @@ import argparse
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import unicodedata
 import uuid
-from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
-KERNEL_VERSION = "2.0.1"
-EVENT_TYPES = {"context", "task", "decision", "handoff", "block", "approval", "close", "audit"}
-ENGAGEMENT_TYPES = {"client", "internal-project", "case", "research"}
-RISK_LEVELS = {"low", "medium", "high", "critical"}
+KERNEL_VERSION = "3.0.0.dev0"
+SOURCE_ROLES = {"organization", "work", "knowledge", "artifacts"}
+SOURCE_MODES = {"read", "read-write"}
+REQUIRED_SOURCE_ROLES = {"organization", "work"}
+LEGACY_LOCAL_ROOTS = (
+    "org", "engagements", "clients", "projects", "casos", "bus", "bandeja", ".riel"
+)
+LINK_FILENAME = ".riel-instance.json"
 
 
 def now() -> datetime:
@@ -33,7 +35,7 @@ def slug(value: str) -> str:
     value = unicodedata.normalize("NFKD", value.strip().lower())
     value = "".join(char for char in value if not unicodedata.combining(char))
     value = re.sub(r"[^a-z0-9_-]+", "-", value)
-    return value.strip("-") or "usuario"
+    return value.strip("-") or "instance"
 
 
 def root_from(start: Path | None = None) -> Path:
@@ -57,147 +59,64 @@ def write_json(path: Path, data: Any) -> None:
     os.replace(tmp, path)
 
 
-def render(template: str, values: dict[str, str]) -> str:
-    for key, value in values.items():
-        template = template.replace("{{" + key + "}}", value)
-    return template
-
-
-@contextmanager
-def file_lock(path: Path) -> Iterator[None]:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = path.open("a+", encoding="utf-8")
+def is_within(path: Path, parent: Path) -> bool:
     try:
-        if os.name == "nt":
-            import msvcrt
-            handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        yield
-    finally:
-        try:
-            if os.name == "nt":
-                import msvcrt
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        finally:
-            handle.close()
+        path.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
 
 
-def append_ndjson(path: Path, data: dict[str, Any]) -> None:
-    lock = path.with_suffix(path.suffix + ".lock")
-    with file_lock(lock):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8", newline="\n") as handle:
-            handle.write(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
+def default_state_home() -> Path:
+    override = os.environ.get("RIEL_STATE_HOME")
+    if override:
+        return Path(override).expanduser().resolve()
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA")
+        return (Path(base) if base else Path.home() / "AppData" / "Local") / "Riel" / "instances"
+    xdg = os.environ.get("XDG_STATE_HOME")
+    return (Path(xdg).expanduser() if xdg else Path.home() / ".local" / "state") / "riel" / "instances"
 
 
-def event_id(prefix: str = "evt") -> str:
-    stamp = now().strftime("%Y%m%dT%H%M%S")
-    return f"{prefix}-{stamp}-{uuid.uuid4().hex[:8]}"
+def link_path(root: Path) -> Path:
+    return root / LINK_FILENAME
 
 
-def ensure_instance(root: Path) -> None:
-    if not (root / ".riel" / "instance.json").exists():
-        raise SystemExit("La instancia no está inicializada. Ejecutá `python scripts/riel.py init`.")
+def instance_dir(root: Path, required: bool = True) -> Path | None:
+    link = read_json(link_path(root), None)
+    if not isinstance(link, dict) or not link.get("state_dir"):
+        if required:
+            raise SystemExit(
+                "La instancia no está conectada. Ejecutá `python scripts/riel.py init` "
+                "desde una terminal humana."
+            )
+        return None
+    state_dir = Path(str(link["state_dir"])).expanduser().resolve()
+    if is_within(state_dir, root):
+        raise SystemExit("El estado de Riel no puede vivir dentro del checkout del kernel.")
+    if required and not (state_dir / "instance.json").exists():
+        raise SystemExit(f"No existe la instancia externa declarada en {LINK_FILENAME}: {state_dir}")
+    return state_dir
+
+
+def instance_record(root: Path) -> dict[str, Any]:
+    directory = instance_dir(root)
+    assert directory is not None
+    return read_json(directory / "instance.json", {})
 
 
 def active_state(root: Path) -> dict[str, Any]:
-    return read_json(root / ".riel" / "state.json", {"active_user": None, "active_engagement": None})
-
-
-def command_init(args: argparse.Namespace) -> None:
-    root = root_from()
-    instance_path = root / ".riel" / "instance.json"
-    if instance_path.exists() and not args.force:
-        raise SystemExit("La instancia ya existe. Usá --force únicamente para reparar metadatos.")
-    org_name = args.org_name or "Organización sin completar"
-    owner = args.owner or "Responsable sin completar"
-    owner_id = slug(owner)
-    timezone_name = args.timezone or os.environ.get("TZ") or "local"
-
-    for directory in [
-        root / "org" / "users",
-        root / "engagements",
-        root / "bus" / "queues",
-        root / "bus" / "events",
-        root / "bus" / "approvals",
-        root / ".riel",
-    ]:
-        directory.mkdir(parents=True, exist_ok=True)
-
-    org_template = (root / "templates" / "org-context.md").read_text(encoding="utf-8")
-    user_template = (root / "templates" / "user.md").read_text(encoding="utf-8")
-    org_path = root / "org" / "context.md"
-    user_path = root / "org" / "users" / f"{owner_id}.md"
-    if not org_path.exists():
-        org_path.write_text(render(org_template, {"ORG_NAME": org_name, "OWNER": owner}), encoding="utf-8")
-    if not user_path.exists():
-        user_path.write_text(render(user_template, {"USER_NAME": owner, "USER_ID": owner_id}), encoding="utf-8")
-
-    write_json(instance_path, {
-        "schema_version": "1.0",
-        "kernel_version": KERNEL_VERSION,
-        "mode": "instance",
-        "initialized_at": iso(),
-        "timezone": timezone_name,
-    })
-    write_json(root / ".riel" / "state.json", {
-        "active_user": owner_id,
-        "active_engagement": None,
-        "updated_at": iso(),
-    })
-    (root / "bus" / "queues" / "riel.ndjson").touch(exist_ok=True)
-    print(f"Instancia inicializada. Usuario activo: {owner_id}.")
-    print("Revisá y aprobá org/context.md y el perfil del usuario antes de canonizarlos.")
-
-
-def validate_event(event: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    required = ["schema_version", "id", "type", "status", "sender", "recipient", "scope", "created_at", "payload"]
-    for key in required:
-        if key not in event:
-            errors.append(f"falta `{key}`")
-    if event.get("schema_version") != "1.0":
-        errors.append("schema_version debe ser 1.0")
-    if event.get("type") not in EVENT_TYPES:
-        errors.append(f"tipo inválido: {event.get('type')}")
-    if event.get("type") == "close" and not event.get("closes"):
-        errors.append("un evento close requiere `closes`")
-    if not isinstance(event.get("payload"), dict):
-        errors.append("payload debe ser objeto")
-    try:
-        datetime.fromisoformat(str(event.get("created_at")))
-    except ValueError:
-        errors.append("created_at no es ISO válido")
-    return errors
-
-
-def validate_approval(record: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    required = ["schema_version", "id", "requested_by", "action", "tool_pattern", "scope", "risk", "reversible", "created_at", "expires_at", "status"]
-    for key in required:
-        if key not in record:
-            errors.append(f"falta `{key}`")
-    if record.get("risk") not in RISK_LEVELS:
-        errors.append("risk inválido")
-    if record.get("status") not in {"pending", "approved", "denied", "expired", "consumed"}:
-        errors.append("status inválido")
-    try:
-        re.compile(str(record.get("tool_pattern") or ""))
-    except re.error as exc:
-        errors.append(f"tool_pattern inválido: {exc}")
-    for field in ("created_at", "expires_at"):
-        try:
-            datetime.fromisoformat(str(record.get(field)))
-        except ValueError:
-            errors.append(f"{field} no es ISO válido")
-    return errors
+    directory = instance_dir(root)
+    assert directory is not None
+    return read_json(
+        directory / "state.json",
+        {
+            "active_user_ref": None,
+            "active_engagement_ref": None,
+            "active_workdir": None,
+            "shared_record_ref": None,
+        },
+    )
 
 
 def tracked_private_files(root: Path) -> list[str]:
@@ -205,22 +124,160 @@ def tracked_private_files(root: Path) -> list[str]:
         output = subprocess.check_output(["git", "ls-files"], cwd=root, text=True, stderr=subprocess.DEVNULL)
     except Exception:
         return []
-    private = ("org/", "engagements/", "bus/", ".riel/")
-    return [line for line in output.splitlines() if line.startswith(private) or re.match(r"\.codex/agents/local-.*\.toml$", line)]
+    private = tuple(prefix + "/" for prefix in LEGACY_LOCAL_ROOTS)
+    return [
+        line
+        for line in output.splitlines()
+        if line.startswith(private) or re.match(r"\.codex/agents/local-.*\.toml$", line)
+    ]
+
+
+def legacy_local_data(root: Path) -> list[str]:
+    found: list[str] = []
+    for name in LEGACY_LOCAL_ROOTS:
+        target = root / name
+        if target.exists():
+            found.append(name + "/")
+    for target in (root / ".codex" / "agents").glob("local-*.toml"):
+        found.append(str(target.relative_to(root)).replace("\\", "/"))
+    return found
+
+
+def event_id(prefix: str) -> str:
+    stamp = now().strftime("%Y%m%dT%H%M%S")
+    return f"{prefix}-{stamp}-{uuid.uuid4().hex[:8]}"
+
+
+def validate_source(role: str, source: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if role not in SOURCE_ROLES:
+        errors.append(f"rol inválido: {role}")
+    for field in ("provider", "locator", "mode"):
+        if not str(source.get(field) or "").strip():
+            errors.append(f"falta `{field}`")
+    if source.get("mode") not in SOURCE_MODES:
+        errors.append("mode debe ser read o read-write")
+    return errors
+
+
+def command_init(args: argparse.Namespace) -> None:
+    root = root_from()
+    instance_id = slug(args.instance_id or args.organization_ref)
+    state_dir = (
+        Path(args.state_dir).expanduser().resolve()
+        if args.state_dir
+        else (default_state_home() / instance_id).resolve()
+    )
+    if is_within(state_dir, root):
+        raise SystemExit("--state-dir debe estar fuera del checkout del kernel.")
+    existing_path = state_dir / "instance.json"
+    existing = read_json(existing_path, {}) if existing_path.exists() else {}
+    if existing and not args.force:
+        if existing.get("organization_ref") != args.organization_ref:
+            raise SystemExit("La instancia externa pertenece a otra organization_ref.")
+        if existing.get("owner_ref") != args.owner_ref:
+            raise SystemExit("La instancia externa declara otro owner_ref.")
+        write_json(
+            link_path(root),
+            {
+                "schema_version": "1.0",
+                "instance_id": existing.get("instance_id") or instance_id,
+                "state_dir": str(state_dir),
+            },
+        )
+        print(f"Instancia técnica existente reconectada sin modificar sus fuentes: {state_dir}")
+        return
+
+    state_dir.mkdir(parents=True, exist_ok=True)
+    for directory in ("audit", "receipts"):
+        (state_dir / directory).mkdir(exist_ok=True)
+
+    shared_sources = existing.get("shared_sources", {}) if existing else {}
+    initialized_at = existing.get("initialized_at") or iso()
+    write_json(
+        existing_path,
+        {
+            "schema_version": "2.0",
+            "kernel_version": KERNEL_VERSION,
+            "mode": "shared-first",
+            "instance_id": instance_id,
+            "organization_ref": args.organization_ref,
+            "owner_ref": args.owner_ref,
+            "initialized_at": initialized_at,
+            "timezone": args.timezone or os.environ.get("TZ") or "local",
+            "python_executable": str(Path(sys.executable).resolve()),
+            "shared_sources": shared_sources,
+        },
+    )
+    state_path = state_dir / "state.json"
+    if not state_path.exists():
+        write_json(
+            state_path,
+            {
+                "active_user_ref": args.owner_ref,
+                "active_engagement_ref": None,
+                "active_workdir": None,
+                "shared_record_ref": None,
+                "updated_at": iso(),
+            },
+        )
+    write_json(
+        link_path(root),
+        {
+            "schema_version": "1.0",
+            "instance_id": instance_id,
+            "state_dir": str(state_dir),
+        },
+    )
+    print(f"Instancia técnica conectada fuera del kernel: {state_dir}")
+    print(
+        "Ahora configurá las fuentes compartidas `organization` y `work` con "
+        "`python scripts/riel.py configure-source`."
+    )
+    print("Riel no creará contexto organizacional ni engagements dentro de este checkout.")
+
+
+def command_configure_source(args: argparse.Namespace) -> None:
+    root = root_from()
+    directory = instance_dir(root)
+    assert directory is not None
+    if args.role not in SOURCE_ROLES:
+        raise SystemExit(f"Rol inválido. Valores: {', '.join(sorted(SOURCE_ROLES))}")
+    if args.mode not in SOURCE_MODES:
+        raise SystemExit("Modo inválido. Valores: read, read-write")
+    record = instance_record(root)
+    sources = record.setdefault("shared_sources", {})
+    sources[args.role] = {
+        "provider": args.provider,
+        "locator": args.locator,
+        "mode": args.mode,
+        "configured_at": iso(),
+    }
+    write_json(directory / "instance.json", record)
+    print(f"Fuente compartida configurada: {args.role} -> {args.provider}")
 
 
 def doctor(root: Path, template_mode: bool = False) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     required = [
-        "AGENTS.md", "README.md", "kernel/CONSTITUTION.md", ".codex/config.toml",
-        ".codex/hooks.json", "scripts/riel.py", "kernel/schemas/event.schema.json",
+        "AGENTS.md",
+        "README.md",
+        "kernel/CONSTITUTION.md",
+        "kernel/shared-source-model.md",
+        ".codex/config.toml",
+        ".codex/hooks.json",
+        "scripts/riel.py",
+        "kernel/schemas/instance.schema.json",
+        "kernel/schemas/connection.schema.json",
     ]
     for item in required:
         if not (root / item).exists():
             errors.append(f"Falta {item}")
+
     try:
         import tomllib
+
         tomllib.loads((root / ".codex" / "config.toml").read_text(encoding="utf-8"))
         for path in (root / ".codex" / "agents").glob("riel-*.toml"):
             tomllib.loads(path.read_text(encoding="utf-8"))
@@ -235,35 +292,56 @@ def doctor(root: Path, template_mode: bool = False) -> tuple[list[str], list[str
 
     if (root / "AGENTS.md").stat().st_size > 65536:
         errors.append("AGENTS.md supera 65536 bytes")
-
     leaked = tracked_private_files(root)
     if leaked:
         errors.append("Git rastrea archivos privados: " + ", ".join(leaked))
+    legacy = legacy_local_data(root)
+    if legacy:
+        errors.append(
+            "El checkout contiene datos o agentes locales heredados: "
+            + ", ".join(legacy)
+            + ". Migrarlos a fuentes compartidas antes de usar esta versión."
+        )
 
-    if not template_mode:
-        if not (root / ".riel" / "instance.json").exists():
-            warnings.append("Instancia no inicializada")
-        for path in (root / "bus").glob("**/*.ndjson") if (root / "bus").exists() else []:
-            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-                if not line.strip():
-                    continue
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    errors.append(f"{path.relative_to(root)}:{number}: JSON inválido: {exc}")
-                    continue
-                for err in validate_event(event):
-                    errors.append(f"{path.relative_to(root)}:{number}: {err}")
-        approvals = root / "bus" / "approvals"
-        if approvals.exists():
-            for path in approvals.glob("*.json"):
-                try:
-                    record = read_json(path, {})
-                except Exception as exc:
-                    errors.append(f"{path.relative_to(root)}: JSON inválido: {exc}")
-                    continue
-                for err in validate_approval(record):
-                    errors.append(f"{path.relative_to(root)}: {err}")
+    if template_mode:
+        return errors, warnings
+
+    directory = instance_dir(root, required=False)
+    if directory is None:
+        warnings.append("Instancia no conectada; el kernel permanece en modo desarrollo")
+        return errors, warnings
+    if is_within(directory, root):
+        errors.append("El estado técnico está dentro del checkout")
+        return errors, warnings
+    record_path = directory / "instance.json"
+    if not record_path.exists():
+        errors.append(f"No existe {record_path}")
+        return errors, warnings
+    try:
+        record = read_json(record_path, {})
+    except Exception as exc:
+        errors.append(f"Instancia externa inválida: {exc}")
+        return errors, warnings
+    if record.get("mode") != "shared-first":
+        errors.append("La instancia externa no usa mode=shared-first")
+    python_executable = Path(str(record.get("python_executable") or ""))
+    if not python_executable.is_file():
+        errors.append("El intérprete Python registrado para los hooks no existe")
+    sources = record.get("shared_sources") or {}
+    for role in sorted(REQUIRED_SOURCE_ROLES - set(sources)):
+        errors.append(f"Falta fuente compartida obligatoria: {role}")
+    for role, source in sources.items():
+        for error in validate_source(role, source):
+            errors.append(f"shared_sources.{role}: {error}")
+    legacy_approval_artifacts = [
+        path.name for path in (directory / "approvals", directory / "active-approval") if path.exists()
+    ]
+    if legacy_approval_artifacts:
+        warnings.append(
+            "Artefactos técnicos de aprobación heredados ignorados: "
+            + ", ".join(legacy_approval_artifacts)
+            + ". No conceden permisos; revisalos y retiralos manualmente."
+        )
     return errors, warnings
 
 
@@ -279,365 +357,115 @@ def command_doctor(args: argparse.Namespace) -> None:
     print("Riel doctor: OK")
 
 
-def command_new_engagement(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    engagement_id = slug(args.id)
-    if args.type not in ENGAGEMENT_TYPES:
-        raise SystemExit(f"Tipo inválido. Valores: {', '.join(sorted(ENGAGEMENT_TYPES))}")
-    target = root / "engagements" / engagement_id
-    if target.exists():
-        raise SystemExit(f"El engagement `{engagement_id}` ya existe.")
-    (target / "shared").mkdir(parents=True)
-    (target / "work").mkdir()
-    values = {
-        "ENGAGEMENT_ID": engagement_id,
-        "ENGAGEMENT_NAME": args.name,
-        "ENGAGEMENT_TYPE": args.type,
-        "OWNER": args.owner or active_state(root).get("active_user") or "pendiente",
-    }
-    mapping = {
-        "templates/engagement-agents.md": target / "AGENTS.md",
-        "templates/engagement-context.md": target / "shared" / "context.md",
-        "templates/open-loops.md": target / "shared" / "open-loops.md",
-        "templates/decisions.md": target / "shared" / "decisions.md",
-        "templates/session-log.md": target / "shared" / "session-log.md",
-    }
-    for source, destination in mapping.items():
-        text = (root / source).read_text(encoding="utf-8")
-        destination.write_text(render(text, values), encoding="utf-8")
-    print(f"Engagement creado: engagements/{engagement_id}")
-
-
 def command_set_context(args: argparse.Namespace) -> None:
     root = root_from()
-    ensure_instance(root)
+    directory = instance_dir(root)
+    assert directory is not None
     state = active_state(root)
-    if args.user:
-        user = slug(args.user)
-        if not (root / "org" / "users" / f"{user}.md").exists():
-            raise SystemExit(f"No existe org/users/{user}.md")
-        state["active_user"] = user
-    if args.engagement:
-        engagement = slug(args.engagement)
-        if not (root / "engagements" / engagement).exists():
-            raise SystemExit(f"No existe engagements/{engagement}")
-        state["active_engagement"] = engagement
+    if args.user_ref:
+        state["active_user_ref"] = args.user_ref
+    if args.engagement_ref:
+        state["active_engagement_ref"] = args.engagement_ref
+        state["shared_record_ref"] = args.shared_record or args.engagement_ref
     if args.clear_engagement:
-        state["active_engagement"] = None
+        state["active_engagement_ref"] = None
+        state["shared_record_ref"] = None
+        state["active_workdir"] = None
     state["updated_at"] = iso()
-    write_json(root / ".riel" / "state.json", state)
+    write_json(directory / "state.json", state)
     print(json.dumps(state, ensure_ascii=False, indent=2))
 
 
-def command_bus_send(args: argparse.Namespace) -> None:
+def command_link_work(args: argparse.Namespace) -> None:
     root = root_from()
-    ensure_instance(root)
-    if args.type not in EVENT_TYPES - {"close", "audit"}:
-        raise SystemExit("Tipo no permitido para bus-send.")
-    try:
-        payload = json.loads(args.payload) if args.payload else {}
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"Payload JSON inválido: {exc}")
-    event = {
-        "schema_version": "1.0",
-        "id": event_id(),
-        "type": args.type,
-        "status": "open",
-        "sender": args.sender,
-        "recipient": slug(args.recipient),
-        "scope": args.scope,
-        "created_at": iso(),
-        "payload": payload,
-    }
-    append_ndjson(root / "bus" / "queues" / f"{event['recipient']}.ndjson", event)
-    print(event["id"])
-
-
-def command_bus_close(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    event = {
-        "schema_version": "1.0",
-        "id": event_id("close"),
-        "type": "close",
-        "status": "closed",
-        "sender": args.sender,
-        "recipient": slug(args.recipient),
-        "scope": args.scope,
-        "created_at": iso(),
-        "payload": {"reason": args.reason},
-        "closes": args.event_id,
-    }
-    append_ndjson(root / "bus" / "queues" / f"{event['recipient']}.ndjson", event)
-    print(event["id"])
-
-
-def command_request_approval(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    if args.risk not in RISK_LEVELS:
-        raise SystemExit("Riesgo inválido.")
-    pattern = args.tool_pattern.strip()
-    if pattern in {".*", ".+", "^.*$", "^.+$"} or len(pattern) < 3:
-        raise SystemExit("tool-pattern demasiado amplio. Describí la herramienta o comando exacto.")
-    if len(pattern) > 300:
-        raise SystemExit("tool-pattern demasiado largo (máximo 300 caracteres).")
-    if not 1 <= args.expires_minutes <= 1440:
-        raise SystemExit("expires-minutes debe estar entre 1 y 1440.")
-    try:
-        re.compile(pattern)
-    except re.error as exc:
-        raise SystemExit(f"tool-pattern inválido: {exc}")
-    approval_id = event_id("apr")
-    record = {
-        "schema_version": "1.0",
-        "id": approval_id,
-        "requested_by": args.requested_by,
-        "approved_by": None,
-        "action": args.action,
-        "tool_pattern": pattern,
-        "scope": args.scope,
-        "risk": args.risk,
-        "reversible": bool(args.reversible),
-        "reason": args.reason or "",
-        "created_at": iso(),
-        "approved_at": None,
-        "expires_at": iso(now() + timedelta(minutes=args.expires_minutes)),
-        "status": "pending",
-        "consumed_at": None,
-    }
-    write_json(root / "bus" / "approvals" / f"{approval_id}.json", record)
-    print(approval_id)
-
-
-def load_approval(root: Path, approval_id: str) -> tuple[Path, dict[str, Any]]:
-    path = root / "bus" / "approvals" / f"{approval_id}.json"
-    if not path.exists():
-        raise SystemExit(f"No existe la aprobación {approval_id}")
-    return path, read_json(path, {})
-
-
-def command_approve(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    path, record = load_approval(root, args.id)
-    if record.get("status") != "pending":
-        raise SystemExit(f"Estado actual no aprobable: {record.get('status')}")
-    if datetime.fromisoformat(record["expires_at"]) < now():
-        record["status"] = "expired"
-        write_json(path, record)
-        raise SystemExit("La aprobación expiró.")
-    record["status"] = "approved"
-    record["approved_by"] = args.by
-    record["approved_at"] = iso()
-    write_json(path, record)
-    print(f"Aprobada: {args.id}")
-
-
-def command_deny(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    path, record = load_approval(root, args.id)
-    if record.get("status") not in {"pending", "approved"}:
-        raise SystemExit(f"Estado actual no denegable: {record.get('status')}")
-    record["status"] = "denied"
-    record["approved_by"] = args.by
-    record["reason"] = args.reason or record.get("reason", "")
-    write_json(path, record)
-    print(f"Denegada: {args.id}")
-
-
-def approval_is_valid(record: dict[str, Any], subject: str) -> bool:
-    if record.get("status") != "approved" or record.get("consumed_at"):
-        return False
-    try:
-        if datetime.fromisoformat(record["expires_at"]) < now():
-            return False
-        return bool(re.search(record["tool_pattern"], subject, re.IGNORECASE))
-    except (ValueError, re.error, KeyError):
-        return False
-
-
-def command_activate_approval(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    _, record = load_approval(root, args.id)
-    if record.get("status") != "approved" or record.get("consumed_at"):
-        raise SystemExit("La aprobación no está aprobada o ya fue consumida.")
-    try:
-        if datetime.fromisoformat(record["expires_at"]) < now():
-            raise SystemExit("La aprobación expiró.")
-    except (ValueError, KeyError):
-        raise SystemExit("La aprobación tiene un vencimiento inválido.")
-    if args.subject and not approval_is_valid(record, args.subject):
-        raise SystemExit("La aprobación no coincide con el subject indicado.")
-    (root / ".riel" / "active-approval").write_text(args.id + "\n", encoding="utf-8")
-    print(f"Aprobación activa para el próximo uso coincidente: {args.id}")
-
-
-def command_new_agent(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    _, approval = load_approval(root, args.approval)
-    if not approval_is_valid(approval, "agent:create"):
-        raise SystemExit("Se requiere aprobación vigente cuyo patrón coincida con `agent:create`.")
-    agent_id = slug(args.id).replace("-", "_")
-    target = root / ".codex" / "agents" / f"local-{agent_id}.toml"
-    if target.exists():
-        raise SystemExit(f"El agente {agent_id} ya existe.")
-    instructions = args.instructions.replace(chr(34) * 3, chr(39) * 3)
-    content = (
-        f'name = "{agent_id}"\n'
-        f'description = {json.dumps(args.description, ensure_ascii=False)}\n'
-        f'model_reasoning_effort = "{args.reasoning_effort}"\n'
-        f'sandbox_mode = "{args.sandbox_mode}"\n'
-        'developer_instructions = """\n'
-        f'{instructions}\n'
-        'No escribas directamente en el bus; devolvé resultados a Riel.\n'
-        '"""\n'
+    directory = instance_dir(root)
+    assert directory is not None
+    workdir = Path(args.work_dir).expanduser().resolve()
+    if is_within(workdir, root):
+        raise SystemExit("El directorio de ejecución debe estar fuera del checkout del kernel.")
+    if not workdir.exists() or not workdir.is_dir():
+        raise SystemExit(f"No existe el directorio de ejecución: {workdir}")
+    state = active_state(root)
+    state.update(
+        {
+            "active_engagement_ref": args.engagement_ref,
+            "shared_record_ref": args.shared_record,
+            "active_workdir": str(workdir),
+            "artifact_ref": args.artifact_ref,
+            "updated_at": iso(),
+        }
     )
-    target.write_text(content, encoding="utf-8")
-    approval["status"] = "consumed"
-    approval["consumed_at"] = iso()
-    approval["consumed_subject"] = "agent:create"
-    write_json(root / "bus" / "approvals" / f"{args.approval}.json", approval)
-    print(f"Agente local creado: {target.relative_to(root)}")
-
-
-def command_retire_agent(args: argparse.Namespace) -> None:
-    root = root_from()
-    ensure_instance(root)
-    _, approval = load_approval(root, args.approval)
-    if not approval_is_valid(approval, "agent:retire"):
-        raise SystemExit("Se requiere aprobación vigente cuyo patrón coincida con `agent:retire`.")
-    agent_id = slug(args.id).replace("-", "_")
-    target = root / ".codex" / "agents" / f"local-{agent_id}.toml"
-    if not target.exists():
-        raise SystemExit(f"No existe {target.relative_to(root)}")
-    archive = root / ".riel" / "retired-agents"
-    archive.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(target), str(archive / f"{target.stem}-{now().strftime('%Y%m%d%H%M%S')}.toml"))
-    approval["status"] = "consumed"
-    approval["consumed_at"] = iso()
-    approval["consumed_subject"] = "agent:retire"
-    write_json(root / "bus" / "approvals" / f"{args.approval}.json", approval)
-    print(f"Agente retirado: {agent_id}")
+    write_json(directory / "state.json", state)
+    print("Ejecución local enlazada. El contexto y la visibilidad siguen en la fuente compartida.")
 
 
 def command_session_close(args: argparse.Namespace) -> None:
     root = root_from()
-    ensure_instance(root)
+    directory = instance_dir(root)
+    assert directory is not None
     state = active_state(root)
-    engagement = args.engagement or state.get("active_engagement")
-    if not engagement:
-        raise SystemExit("No hay engagement activo. Usá --engagement.")
-    log_path = root / "engagements" / slug(engagement) / "shared" / "session-log.md"
-    if not log_path.exists():
-        raise SystemExit(f"No existe {log_path.relative_to(root)}")
-    block = (
-        f"\n## {iso()}\n\n"
-        f"- Qué se hizo: {args.summary}\n"
-        f"- Qué quedó abierto: {args.open or 'ver open-loops.md'}\n"
-        f"- Dueño: {args.owner}\n"
-        f"- Próxima acción: {args.next_action}\n"
-    )
-    with log_path.open("a", encoding="utf-8", newline="\n") as handle:
-        handle.write(block)
-    print(f"Sesión registrada en {log_path.relative_to(root)}")
+    engagement_ref = args.engagement_ref or state.get("active_engagement_ref")
+    if not engagement_ref:
+        raise SystemExit("No hay engagement activo. Usá --engagement-ref.")
+    if not args.shared_record:
+        raise SystemExit("No se puede cerrar sin una referencia al registro compartido actualizado.")
+    receipt = {
+        "schema_version": "1.0",
+        "id": event_id("receipt"),
+        "engagement_ref": engagement_ref,
+        "shared_record_ref": args.shared_record,
+        "confirmed_by": args.confirmed_by,
+        "recorded_at": iso(),
+    }
+    write_json(directory / "receipts" / f"{receipt['id']}.json", receipt)
+    state["shared_record_ref"] = args.shared_record
+    state["updated_at"] = iso()
+    write_json(directory / "state.json", state)
+    print("Sesión cerrada con visibilidad compartida confirmada.")
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CLI de Riel Kernel")
+    parser = argparse.ArgumentParser(description="CLI técnica de Riel Kernel shared-first")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("init", help="Inicializar capas privadas")
-    p.add_argument("--org-name")
-    p.add_argument("--owner")
+    p = sub.add_parser("init", help="Conectar el checkout con estado técnico externo")
+    p.add_argument("--organization-ref", required=True)
+    p.add_argument("--owner-ref", required=True)
+    p.add_argument("--instance-id")
+    p.add_argument("--state-dir")
     p.add_argument("--timezone")
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=command_init)
 
-    p = sub.add_parser("doctor", help="Validar estructura, bus y privacidad")
-    p.add_argument("--template", action="store_true", help="Validar el repositorio sin exigir una instancia")
+    p = sub.add_parser("configure-source", help="Declarar una fuente compartida")
+    p.add_argument("--role", required=True, choices=sorted(SOURCE_ROLES))
+    p.add_argument("--provider", required=True)
+    p.add_argument("--locator", required=True)
+    p.add_argument("--mode", required=True, choices=sorted(SOURCE_MODES))
+    p.set_defaults(func=command_configure_source)
+
+    p = sub.add_parser("doctor", help="Validar kernel limpio, instancia externa y fuentes compartidas")
+    p.add_argument("--template", action="store_true")
     p.set_defaults(func=command_doctor)
 
-    p = sub.add_parser("new-engagement")
-    p.add_argument("--id", required=True)
-    p.add_argument("--type", required=True, choices=sorted(ENGAGEMENT_TYPES))
-    p.add_argument("--name", required=True)
-    p.add_argument("--owner")
-    p.set_defaults(func=command_new_engagement)
-
-    p = sub.add_parser("set-context")
-    p.add_argument("--user")
-    p.add_argument("--engagement")
+    p = sub.add_parser("set-context", help="Seleccionar referencias compartidas activas")
+    p.add_argument("--user-ref")
+    p.add_argument("--engagement-ref")
+    p.add_argument("--shared-record")
     p.add_argument("--clear-engagement", action="store_true")
     p.set_defaults(func=command_set_context)
 
-    p = sub.add_parser("bus-send")
-    p.add_argument("--recipient", required=True)
-    p.add_argument("--type", required=True)
-    p.add_argument("--sender", default="riel")
-    p.add_argument("--scope", default="workspace")
-    p.add_argument("--payload", default="{}")
-    p.set_defaults(func=command_bus_send)
-
-    p = sub.add_parser("bus-close")
-    p.add_argument("event_id")
-    p.add_argument("--recipient", default="riel")
-    p.add_argument("--sender", default="riel")
-    p.add_argument("--scope", default="workspace")
-    p.add_argument("--reason", default="completed")
-    p.set_defaults(func=command_bus_close)
-
-    p = sub.add_parser("request-approval")
-    p.add_argument("--action", required=True)
-    p.add_argument("--tool-pattern", required=True)
-    p.add_argument("--scope", required=True)
-    p.add_argument("--risk", required=True, choices=sorted(RISK_LEVELS))
-    p.add_argument("--reversible", action="store_true")
-    p.add_argument("--reason")
-    p.add_argument("--requested-by", default="riel")
-    p.add_argument("--expires-minutes", type=int, default=120)
-    p.set_defaults(func=command_request_approval)
-
-    p = sub.add_parser("approve")
-    p.add_argument("id")
-    p.add_argument("--by", required=True)
-    p.set_defaults(func=command_approve)
-
-    p = sub.add_parser("deny")
-    p.add_argument("id")
-    p.add_argument("--by", required=True)
-    p.add_argument("--reason")
-    p.set_defaults(func=command_deny)
-
-    p = sub.add_parser("activate-approval")
-    p.add_argument("id")
-    p.add_argument("--subject")
-    p.set_defaults(func=command_activate_approval)
-
-    p = sub.add_parser("new-agent")
-    p.add_argument("--id", required=True)
-    p.add_argument("--description", required=True)
-    p.add_argument("--instructions", required=True)
-    p.add_argument("--approval", required=True)
-    p.add_argument("--reasoning-effort", choices=["low", "medium", "high"], default="medium")
-    p.add_argument("--sandbox-mode", choices=["read-only", "workspace-write"], default="read-only")
-    p.set_defaults(func=command_new_agent)
-
-    p = sub.add_parser("retire-agent")
-    p.add_argument("--id", required=True)
-    p.add_argument("--approval", required=True)
-    p.set_defaults(func=command_retire_agent)
+    p = sub.add_parser("link-work", help="Enlazar ejecución local fuera del kernel")
+    p.add_argument("--engagement-ref", required=True)
+    p.add_argument("--shared-record", required=True)
+    p.add_argument("--work-dir", required=True)
+    p.add_argument("--artifact-ref")
+    p.set_defaults(func=command_link_work)
 
     p = sub.add_parser("session-close")
-    p.add_argument("--summary", required=True)
-    p.add_argument("--next-action", required=True)
-    p.add_argument("--owner", required=True)
-    p.add_argument("--open")
-    p.add_argument("--engagement")
+    p.add_argument("--engagement-ref")
+    p.add_argument("--shared-record", required=True)
+    p.add_argument("--confirmed-by", required=True)
     p.set_defaults(func=command_session_close)
 
     return parser

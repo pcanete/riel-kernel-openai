@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+LINK_FILENAME = ".riel-instance.json"
+
 
 def find_root() -> Path:
     override = os.environ.get("RIEL_ROOT")
@@ -52,8 +54,20 @@ def deny(reason: str) -> None:
     }, ensure_ascii=False))
 
 
+def instance_dir(root: Path) -> Path | None:
+    try:
+        link = json.loads((root / LINK_FILENAME).read_text(encoding="utf-8"))
+        state_dir = Path(str(link["state_dir"])).expanduser().resolve()
+        state_dir.relative_to(root.resolve())
+        return None
+    except ValueError:
+        return state_dir if (state_dir / "instance.json").exists() else None
+    except Exception:
+        return None
+
+
 def is_instance(root: Path) -> bool:
-    return (root / ".riel" / "instance.json").exists()
+    return instance_dir(root) is not None
 
 
 def maintenance_enabled() -> bool:
