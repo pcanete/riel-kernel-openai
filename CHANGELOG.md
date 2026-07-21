@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.1 — 2026-07-15
+
+Correcciones de compatibilidad verificadas en Windows y Codex CLI.
+
+- El guard reconoce rutas absolutas de Windows aunque el workspace contenga espacios, caracteres no ASCII o una ruta corta 8.3.
+- Compatibilidad de hooks tanto con el flag estable actual como con `codex_hooks` en Codex CLI 0.118.x.
+- Suite completa validada en Windows con 14 pruebas aprobadas.
+
 ## 2.0.0 — 2026-07-15
 
 Reconstrucción para Codex y ChatGPT.

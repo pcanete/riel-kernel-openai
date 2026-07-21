@@ -65,6 +65,30 @@ def patch_paths(command: str) -> list[str]:
 
 
 def command_touches_protected(command: str, root: Path) -> bool:
+    normalized_command = command.replace("\\", "/")
+
+    # Detect absolute paths before tokenizing. Windows user and workspace paths
+    # commonly contain spaces or non-ASCII characters, which are intentionally
+    # not covered by the conservative token matcher below. Keep the lexical
+    # RIEL_ROOT alias too: Path.resolve() expands Windows 8.3 paths, while the
+    # command may still contain the short spelling.
+    root_texts = {root.as_posix().rstrip("/") + "/"}
+    root_override = os.environ.get("RIEL_ROOT")
+    if root_override:
+        root_texts.add(Path(root_override).as_posix().rstrip("/") + "/")
+    command_key = normalized_command.casefold()
+    for root_text in root_texts:
+        root_key = root_text.casefold()
+        search_from = 0
+        while True:
+            root_at = command_key.find(root_key, search_from)
+            if root_at < 0:
+                break
+            relative = normalized_command[root_at + len(root_text):]
+            if is_protected_path(relative):
+                return True
+            search_from = root_at + len(root_text)
+
     root_text = root.as_posix().rstrip("/") + "/"
     for token in re.findall(r"(?:^|\s)([A-Za-z0-9_.:\\/-]+)", command):
         normalized = token.replace("\\", "/").strip("\"'")

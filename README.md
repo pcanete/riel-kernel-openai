@@ -65,7 +65,7 @@ Seguir `MIGRATION_FROM_RIEL_1.md`. La migración es deliberadamente a un reposit
 
 ## Estado
 
-Versión 2.0.0. Requiere Python 3.11 o superior. No necesita dependencias de ejecución externas.
+Versión 2.0.1. Requiere Python 3.11 o superior. No necesita dependencias de ejecución externas.
 
 ## Licencia
 

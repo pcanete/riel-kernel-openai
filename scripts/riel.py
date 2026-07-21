@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
-KERNEL_VERSION = "2.0.0"
+KERNEL_VERSION = "2.0.1"
 EVENT_TYPES = {"context", "task", "decision", "handoff", "block", "approval", "close", "audit"}
 ENGAGEMENT_TYPES = {"client", "internal-project", "case", "research"}
 RISK_LEVELS = {"low", "medium", "high", "critical"}

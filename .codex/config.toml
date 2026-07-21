@@ -5,6 +5,9 @@ project_doc_fallback_filenames = ["CHATGPT_PROJECT_INSTRUCTIONS.md"]
 
 [features]
 hooks = true
+# Compatibilidad con Codex CLI 0.118.x, donde el flag aún conserva
+# su nombre experimental. Las versiones actuales usan `hooks`.
+codex_hooks = true
 
 [agents]
 max_threads = 4
