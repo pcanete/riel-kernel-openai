@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import os
 import shutil
 import tempfile
 import unittest
 from argparse import Namespace
+from contextlib import redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -146,6 +148,35 @@ class RielCliTests(unittest.TestCase):
         self.assertFalse((self.state_dir / "approvals").exists())
         self.assertFalse((self.state_dir / "active-approval").exists())
 
+    def test_receipt_does_not_certify_an_unreachable_record(self):
+        self.init_instance()
+        output = io.StringIO()
+        with redirect_stdout(output):
+            riel.command_session_close(Namespace(
+                engagement_ref="work://test-case",
+                shared_record="https://example.invalid/missing-record",
+                confirmed_by="user://declared-not-authenticated",
+            ))
+        receipts = list((self.state_dir / "receipts").glob("*.json"))
+        self.assertEqual(len(receipts), 1)
+        receipt = json.loads(receipts[0].read_text(encoding="utf-8"))
+        self.assertEqual(receipt["schema_version"], "1.1")
+        self.assertEqual(receipt["visibility_status"], "not_verified_by_cli")
+        self.assertNotIn("visibilidad compartida confirmada", output.getvalue())
+        self.assertNotIn("Sesión cerrada", output.getvalue())
+
+    def test_empty_close_references_leave_no_receipt_or_state_change(self):
+        self.init_instance()
+        state_before = (self.state_dir / "state.json").read_bytes()
+        for field in ("engagement_ref", "shared_record", "confirmed_by"):
+            with self.subTest(field=field):
+                values = dict(engagement_ref="work://case", shared_record="wiki://record", confirmed_by="user://owner")
+                values[field] = "   "
+                with self.assertRaises(SystemExit):
+                    riel.command_session_close(Namespace(**values))
+        self.assertEqual(list((self.state_dir / "receipts").glob("*.json")), [])
+        self.assertEqual((self.state_dir / "state.json").read_bytes(), state_before)
+
     def test_doctor_warns_that_legacy_approval_artifacts_are_inert(self):
         self.init_instance()
         self.configure_required_sources()
@@ -157,6 +188,38 @@ class RielCliTests(unittest.TestCase):
 
     def test_slug_preserves_spanish_names(self):
         self.assertEqual(riel.slug("Ana Pérez Núñez"), "ana-perez-nunez")
+
+    def test_second_organization_does_not_inherit_sources_or_work(self):
+        self.init_instance()
+        self.configure_required_sources()
+        riel.command_link_work(Namespace(
+            engagement_ref="work://first/case", shared_record="wiki://first/case",
+            work_dir=str(self.work_dir), artifact_ref="git://first/artifact",
+        ))
+        first_instance = (self.state_dir / "instance.json").read_bytes()
+        first_state = (self.state_dir / "state.json").read_bytes()
+        # A fresh installation uses the identical public kernel and another adapter.
+        second_root = self.base / "second-kernel"
+        second_state = self.base / "second-state"
+        shutil.copytree(self.root, second_root, ignore=shutil.ignore_patterns(".riel-instance.json", "__pycache__"))
+        os.chdir(second_root)
+        riel.command_init(Namespace(
+            organization_ref="wiki://cooperative", owner_ref="user://bea",
+            instance_id="cooperative", state_dir=str(second_state), timezone="UTC", force=False,
+        ))
+        for role, locator in (("organization", "wiki://cooperative"), ("work", "tracker://cooperative")):
+            riel.command_configure_source(Namespace(role=role, provider="alternative", locator=locator, mode="read"))
+        errors, _ = riel.doctor(second_root)
+        self.assertEqual(errors, [])
+        instance = json.loads((second_state / "instance.json").read_text(encoding="utf-8"))
+        state = json.loads((second_state / "state.json").read_text(encoding="utf-8"))
+        self.assertEqual(instance["owner_ref"], "user://bea")
+        self.assertEqual(instance["shared_sources"]["work"]["locator"], "tracker://cooperative")
+        self.assertIsNone(state["active_engagement_ref"])
+        self.assertIsNone(state["active_workdir"])
+        self.assertIsNone(state["shared_record_ref"])
+        self.assertEqual((self.state_dir / "instance.json").read_bytes(), first_instance)
+        self.assertEqual((self.state_dir / "state.json").read_bytes(), first_state)
 
 
 if __name__ == "__main__":

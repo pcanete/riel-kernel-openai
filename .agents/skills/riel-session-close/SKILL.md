@@ -1,11 +1,14 @@
 ---
 name: riel-session-close
-description: Cerrar una sesión dejando el estado durable y visible en la fuente compartida; el recibo local es solo evidencia técnica.
+description: Cerrar trabajo con continuidad compartida o preparar un handoff verificable; no convertir cada respuesta o consulta en un registro obligatorio.
 ---
 
-1. Verificá el resultado y distinguí terminado, pendiente y bloqueado.
-2. Actualizá el registro compartido del engagement con resultado, evidencia o artefactos, decisiones, pendientes, responsables y próxima acción.
-3. Confirmá que la actualización sea legible por las personas que necesitan visibilidad.
-4. Ejecutá `session-close --engagement-ref <ref> --shared-record <ref> --confirmed-by <owner-ref>` para emitir un recibo técnico fuera del checkout.
-5. Si no fue posible sincronizar la fuente compartida, no declares cierre completo: reportá `ejecución realizada / visibilidad pendiente` y dejá explícito qué debe publicarse.
-6. No crees logs de sesión, buses ni memoria organizacional dentro del kernel.
+Verificá el resultado y distinguí terminado, pendiente y bloqueado. Determiná si el pedido o workflow autoriza registro; una consulta sin ese requisito termina con la respuesta, sin inventar tareas.
+
+Cuando corresponda registrar, actualizá la fuente del caso con resultado, referencia del artefacto, decisiones relevantes, pendientes, responsable y próxima acción. Reutilizá una autorización vigente para ese alcance.
+
+Volvé a leer el registro con el conector autorizado y contrastá su contenido con lo escrito. Indicá qué acceso comprobaste; no deduzcas permisos de todo el equipo porque vos pudiste leer. Una URL, respuesta HTTP o recibo local no demuestra por sí solo que el resultado quedó visible.
+
+Si el adapter ofrece un recibo técnico, es opcional y no reemplaza la lectura compartida. No debe atribuirle al comando una verificación que no realizó.
+
+Si falla una sincronización necesaria, entregá el artefacto y declaralo `ejecución realizada / visibilidad pendiente`, indicando el dato pendiente y la próxima acción. No dupliques la memoria institucional en el kernel.

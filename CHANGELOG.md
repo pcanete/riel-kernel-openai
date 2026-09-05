@@ -1,5 +1,15 @@
 # Changelog
 
+## Sin publicar — coordinación con skills y tres capas
+
+- El agente principal ejecuta como Riel; coordinador adicional y especialistas dejan de ser pasos obligatorios.
+- Contrato común y cinco skills portables con carga por demanda. Los adapters conservan sus mecanismos nativos.
+- Tres capas explícitas: kernel, organización (incluidos usuarios) y trabajo (incluidos laboratorios). Sin migración automática de datos.
+- Autoridad vigente reutilizable, registro según alcance y lectura compartida como evidencia del cierre.
+- Contexto privado, elección del modelo y perfiles de organización fuera del kernel.
+- Matriz de evaluación que separa verificaciones técnicas de desempeño del modelo.
+- La CLI emite recibos 1.1 declarativos y deja de afirmar que verificó la visibilidad. Recibos 1.0 conservados como históricos.
+
 ## 3.0.0-dev — 2026-07-21
 
 Cambio arquitectónico shared-first en desarrollo.

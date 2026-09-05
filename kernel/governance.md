@@ -1,30 +1,9 @@
-# Gobernanza
+# Gobierno
 
-## Matriz de riesgo
+Aplicar [el contrato común](coordination.md). Una aprobación específica y vigente del usuario autorizado puede llegar por la conversación; no se obliga a repetirla en otra interfaz. El workflow define qué decisiones deben registrarse y la escritura también debe estar autorizada.
 
-| Nivel | Ejemplos | Conducta |
-|---|---|---|
-| 0 | lectura, análisis, borrador, edición privada reversible | ejecutar |
-| 1 | validación rutinaria, mantenimiento local de bajo impacto | ejecutar y avisar |
-| 2 | mensajes externos, publicación, despliegue, borrado, permisos, costos, agentes | esperar aprobación formal |
+Las decisiones de negocio, los permisos nativos del runtime y los permisos del proveedor externo cumplen funciones distintas. Un registro, una skill, un recibo o una identidad declarada no concede capacidad técnica. Si falta autoridad o permiso aplicable, detener esa acción y continuar trabajo independiente.
 
-## Aprobación
+Una tarea reversible no requiere activar una cadena de aprobaciones. Preparar el resultado concreto antes de pedir la decisión sensible faltante. No ampliar una autorización por analogía.
 
-La aprobación tiene dos capas que no se sustituyen:
-
-- **Decisión de negocio:** queda en el sistema compartido con identificador, solicitante, autoridad, acción, alcance, riesgo, reversibilidad, vigencia y estado.
-- **Autorización técnica:** la conceden el sandbox, la política nativa de aprobación de Codex y los permisos del proveedor externo al momento de ejecutar.
-
-Un registro compartido nunca se transforma en permiso técnico. Riel no genera tokens locales ni permite que un hook eleve permisos. La acción permanece pendiente si falta cualquiera de las capas aplicables o si el alcance no coincide exactamente.
-
-## Decisiones
-
-Registrar en el sistema compartido las decisiones que cambian dirección, alcance, permisos, arquitectura o una recomendación que el humano decide ignorar. No registrar cada preferencia menor ni usar un archivo local como única copia.
-
-## Visibilidad
-
-El cierre de trabajo requiere un registro compartido con resultado, estado, dueño y próxima acción. Si la sincronización no ocurre, el trabajo permanece `visibilidad pendiente` aunque el artefacto local esté terminado.
-
-## Escalación
-
-Escalar cuando la decisión es difícil de revertir, cruza contextos, afecta terceros, expone datos, genera costos o carece de dueño autorizado.
+Registrar decisiones que cambian dirección, alcance, permisos o responsabilidades cuando esté autorizado. En trabajo que necesita continuidad compartida, comprobar contenido y alcance de acceso con el conector antes de afirmar cierre. Una conversación de análisis sin pedido de registro puede concluir sin escribir.

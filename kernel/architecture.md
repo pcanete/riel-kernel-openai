@@ -1,35 +1,27 @@
-# Arquitectura
+# Arquitectura de tres capas
 
-## Separación física
+El [contrato portable](coordination.md) define kernel, organización y trabajo. Los usuarios son parte de organización; los engagements, incluidos laboratorios, son trabajo. Los roles de adapter existentes se conservan sin migrar ni renombrar datos.
 
-- **Kernel:** este checkout Git. Contiene doctrina, adapters de runtime, templates, hooks, skills y pruebas. Es público, actualizable y reemplazable.
-- **Estado técnico:** directorio externo enlazado por `.riel-instance.json`. Contiene referencias, recibos y hashes; no contiene contexto organizacional durable ni permisos delegados.
-- **Fuentes compartidas:** sistemas accesibles para la organización donde viven contexto, usuarios, engagements, decisiones, loops y visibilidad.
-- **Ejecución local:** worktrees o directorios separados para software, contenidos u otros artefactos. Nunca viven dentro del kernel.
+| Capa | Qué se configura | Dónde vive |
+|---|---|---|
+| Kernel | Contrato, skills genéricas, adapters de runtime, herramientas técnicas y pruebas | Checkout público reemplazable |
+| Organización | Identidad, usuarios, autoridad, modelos, catálogo de capacidades y fuentes | Fuente `organization`, conocimiento privado y configuración externa |
+| Trabajo | Casos, alcance, decisiones, pendientes y resultados | Fuente `work`, repositorios de artefactos y ejecución externa |
 
-## Capas lógicas
+`knowledge` es un rol de información de la organización; `artifacts` localiza entregables del trabajo. No son capas adicionales. El estado técnico enlazado por `.riel-instance.json` contiene referencias, rutas y recibos declarativos; no memoria institucional ni autorizaciones.
 
-- **Capa 0 — kernel:** reglas portables y adapter OpenAI/Codex.
-- **Capa 1 — organización:** registro compartido de identidad, gobierno, herramientas y fuentes canónicas.
-- **Capa 2 — usuarios:** autoridad, preferencias y necesidades de explicación en un registro compartido.
-- **Capa 3 — engagements:** trabajo real, decisiones, estado y próximos pasos en proyectos compartidos.
+## Reemplazabilidad
 
-Las capas 1–3 ya no son carpetas dentro del checkout. Son roles de información resueltos por adapters.
+Otra organización recibe el mismo kernel y declara otras fuentes, usuarios, capacidades y responsables. Puede usar una wiki, un repositorio compartido o un gestor distinto. Ningún nombre de cliente, persona, modelo comercial o proveedor es obligatorio.
 
-Los adapters no convierten el contenido recuperado en autoridad. Conservan procedencia y referencias, limitan el alcance por organización y engagement, y entregan el contenido como datos no confiables para evaluación.
+El contexto se recupera por demanda y se identifica su procedencia. Un conector ausente no se sustituye por memoria de otra instalación. El modelo principal ejecuta con skills; los subagentes son opcionales y su uso no amplía autoridad.
 
-## Anclas
+## Fuente del contrato común
 
-El kernel usa rutas relativas sólo para sus propios archivos. Las fuentes organizacionales se identifican mediante referencias opacas o URLs del adapter. Una ruta local puede apuntar a ejecución, pero nunca define la identidad de una organización.
+`kernel/coordination.md` y las cinco skills `riel-*` de este repositorio son la fuente de mantenimiento del contrato portable. El adapter Claude distribuye copias equivalentes en `docs/coordination.md` y `.claude/skills/`. Comparar ambas distribuciones antes de publicar un cambio común; no requieren consultarse entre sí durante la ejecución. El método privado de una organización no se publica en ninguna de ellas.
 
-## Contexto progresivo
+Con ambos checkouts disponibles, ejecutar `python scripts/validate_repo.py --peer <checkout-claude>`. Falla si falta o difiere el contrato o alguna skill común; normaliza únicamente los finales de línea al leerlos.
 
-Riel recupera una capa por vez desde la fuente compartida correspondiente. No descarga toda la organización ni persiste una copia local por defecto.
+## Compatibilidad
 
-## Fuente de verdad
-
-El sistema compartido declarado prevalece sobre conversaciones, cachés y archivos locales. Los artefactos tienen su propia fuente compartida —por ejemplo GitHub para software o Drive para documentos— y el registro de trabajo conserva el enlace, estado, dueño y próxima acción.
-
-## Prueba de reemplazabilidad
-
-La arquitectura es correcta si se puede eliminar el checkout, clonarlo nuevamente, reconectar los adapters y recuperar la continuidad sin pérdida de contexto organizacional.
+Las antiguas capas 0/1/2/3 se leen como kernel / organización y usuarios / trabajo. No cambiar schemas de instancia ni mover carpetas de clientes por esta aclaración. Las fuentes y artefactos siguen fuera del checkout. El kernel debe poder reinstalarse sin perder continuidad organizacional.

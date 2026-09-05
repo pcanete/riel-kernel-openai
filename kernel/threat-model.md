@@ -29,7 +29,7 @@
 - adapters por rol y referencias explícitas a organización y engagement;
 - mínimo contexto por demanda y verificación de autoridad;
 - cierre condicionado a un registro compartido;
-- aprobación de negocio en el sistema compartido y autorización técnica exclusivamente mediante controles nativos de la plataforma;
+- decisión humana vigente, trazabilidad compartida según el workflow y autorización técnica exclusivamente mediante controles nativos de la plataforma;
 - separación física de artefactos locales;
 - auditoría técnica como complemento, nunca como canon organizacional.
 - tratamiento explícito de toda fuente externa como dato no confiable, con procedencia y alcance.
