@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -11,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Validar el kernel y, opcionalmente, su contrato común con Claude")
+    parser.add_argument("--peer", type=Path, help="Checkout local de riel-kernel (Claude) para comparar contrato y skills")
+    args = parser.parse_args()
     errors: list[str] = []
     for name in ("org", "engagements", "clients", "projects", "casos", "bus", "bandeja", ".riel"):
         if (ROOT / name).exists():
@@ -37,6 +41,18 @@ def main() -> int:
         text = skill.read_text(encoding="utf-8")
         if not text.startswith("---\n") or "\nname:" not in text or "\ndescription:" not in text:
             errors.append(f"Metadata inválida en {skill.relative_to(ROOT)}")
+
+    if args.peer:
+        pairs = [(ROOT / "kernel" / "coordination.md", args.peer / "docs" / "coordination.md")]
+        pairs.extend(
+            (skill, args.peer / ".claude" / "skills" / skill.parent.name / "SKILL.md")
+            for skill in sorted((ROOT / ".agents" / "skills").glob("*/SKILL.md"))
+        )
+        for source, peer in pairs:
+            if not peer.is_file():
+                errors.append(f"Falta contraparte del contrato común: {peer}")
+            elif source.read_text(encoding="utf-8") != peer.read_text(encoding="utf-8"):
+                errors.append(f"Divergencia del contrato común: {source.relative_to(ROOT)} vs {peer}")
 
     link_re = re.compile(r"\[[^\]]+\]\((?!https?://|#)([^)]+)\)")
     for path in ROOT.rglob("*.md"):

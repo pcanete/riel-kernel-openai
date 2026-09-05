@@ -405,23 +405,28 @@ def command_session_close(args: argparse.Namespace) -> None:
     assert directory is not None
     state = active_state(root)
     engagement_ref = args.engagement_ref or state.get("active_engagement_ref")
-    if not engagement_ref:
+    if not engagement_ref or not engagement_ref.strip():
         raise SystemExit("No hay engagement activo. Usá --engagement-ref.")
-    if not args.shared_record:
+    if not args.shared_record or not args.shared_record.strip():
         raise SystemExit("No se puede cerrar sin una referencia al registro compartido actualizado.")
+    if not args.confirmed_by or not args.confirmed_by.strip():
+        raise SystemExit("Falta la referencia de quien declara el registro. Usá --confirmed-by.")
+    # This CLI has no provider connection. A caller-supplied reference and actor
+    # are declarations, never proof of remote content, visibility or authority.
     receipt = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "id": event_id("receipt"),
         "engagement_ref": engagement_ref,
         "shared_record_ref": args.shared_record,
         "confirmed_by": args.confirmed_by,
         "recorded_at": iso(),
+        "visibility_status": "not_verified_by_cli",
     }
     write_json(directory / "receipts" / f"{receipt['id']}.json", receipt)
     state["shared_record_ref"] = args.shared_record
     state["updated_at"] = iso()
     write_json(directory / "state.json", state)
-    print("Sesión cerrada con visibilidad compartida confirmada.")
+    print("Referencia de cierre registrada. La CLI no verificó contenido ni visibilidad compartida.")
 
 
 def build_parser() -> argparse.ArgumentParser:

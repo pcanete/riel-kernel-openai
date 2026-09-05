@@ -42,14 +42,14 @@ El estado técnico externo al checkout puede guardar:
 - referencias de organización, usuario y engagement;
 - locators y modos de acceso de adapters;
 - rutas de ejecución local;
-- recibos que prueban qué registro compartido se actualizó;
+- recibos con referencias declaradas; no prueban por sí solos una actualización ni acceso;
 - hashes y auditoría técnica mínima;
 
 No puede guardar dossiers, decisiones, mensajes completos, open loops, contenido de clientes ni una copia durable de la Wiki.
 
 ## Regla de cierre
 
-Un resultado local no equivale a trabajo visible. Antes de cerrar, Riel actualiza el sistema compartido y obtiene una referencia verificable. Si no puede hacerlo, el estado es `visibilidad pendiente` y el trabajo continúa abierto para la organización.
+Un resultado local no equivale a trabajo visible. Cuando el trabajo requiere continuidad y el registro está autorizado, Riel actualiza el sistema compartido y vuelve a leer su contenido. Una consulta sin requisito de registro puede terminar con la respuesta. Si no puede hacerlo, el estado es `visibilidad pendiente` y el trabajo continúa abierto para la organización.
 
 ## Modo desconectado
 
